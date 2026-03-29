@@ -2,14 +2,15 @@
 {% block title %}Clases{% endblock %}
 
 {% block content %}
-<div class="mb-5 text-center"> <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+<div class="mb-8">
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="text-center md:text-left">
-            <h2 class="text-2xl font-bold" style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">CLASES</h2>
-            <p class="text-gray-400 text-sm">Horarios y asistencia diaria</p>
+            <h2 class="text-3xl font-bold text-white" style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">GESTIÓN DE CLASES</h2>
+            <p class="text-gray-400 text-sm">Horarios de actividades y control de asistencia</p>
         </div>
         {% if current_user.role == 'admin' %}
-        <button onclick="document.getElementById('modalClase').classList.remove('hidden')" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nueva Clase
+        <button onclick="document.getElementById('modalClase').classList.remove('hidden')" class="btn btn-primary shadow-lg shadow-red-900/20">
+            <i class="fas fa-plus mr-2"></i> NUEVA CLASE
         </button>
         {% endif %}
     </div>
@@ -17,42 +18,48 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
     {% for c in clases %}
-    <div class="card mx-auto w-full max-w-sm overflow-hidden border border-white/10"> <div class="bg-red-600 px-4 py-3 text-center"> <h3 class="text-xl font-bold text-white uppercase" style="font-family: 'Bebas Neue', sans-serif;">{{ c.nombre }}</h3>
-            <p class="text-red-100 text-xs font-medium uppercase tracking-wider">{{ c.dia }} — {{ c.hora }}</p>
+    <div class="card mx-auto w-full max-w-sm overflow-hidden border border-white/10 flex flex-col">
+        <div class="bg-red-600 px-4 py-3 text-center">
+            <h3 class="text-xl font-bold text-white uppercase" style="font-family: 'Bebas Neue', sans-serif;">{{ c.nombre }}</h3>
+            <p class="text-red-100 text-xs font-medium uppercase tracking-widest">{{ c.dia }} — {{ c.hora }}</p>
         </div>
         
-        <div class="p-5">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-gray-400 text-sm">Ocupación:</span>
-                <span class="font-bold text-white">{{ c.asistentes_hoy }} / {{ c.capacidad }}</span>
-            </div>
-            
-            <div class="w-full bg-white/10 rounded-full h-2 mb-6">
-                <div class="bg-green-500 rounded-full h-2 transition-all duration-500" 
-                     style="width: {% if c.capacidad > 0 %}{{ (c.asistentes_hoy / c.capacidad * 100)|int }}{% else %}0{% endif %}%">
+        <div class="p-5 flex-grow flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-400 text-sm">Asistentes hoy:</span>
+                    <span class="font-bold text-white text-lg">{{ c.asistentes_hoy }} / {{ c.capacidad }}</span>
                 </div>
-            </div>
-            
-            <form method="POST" action="{{ url_for('registrar_asistencia') }}" class="space-y-4">
-                <input type="hidden" name="clase_id" value="{{ c.id }}">
-                <div class="form-group">
-                    <label class="form-label text-xs uppercase text-gray-400">Marcar Presente</label>
-                    <select name="alumno_id" required class="form-control bg-gray-800 border-gray-700 text-white">
-                        <option value="">Seleccionar alumno</option>
-                        {% for a in alumnos_activos %}
-                        <option value="{{ a.id }}">{{ a.nombre }} {% if a.morosidad %}(⚠️ Deuda){% endif %}</option>
-                        {% endfor %}
-                    </select>
+                
+                <div class="w-full bg-white/10 rounded-full h-2.5 mb-6">
+                    <div class="bg-green-500 rounded-full h-2.5 transition-all duration-700" 
+                         style="width: {% if c.capacidad > 0 %}{{ (c.asistentes_hoy / c.capacidad * 100)|int }}{% else %}0{% endif %}%">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-success w-full py-3 shadow-lg shadow-green-900/20">
-                    <i class="fas fa-user-check mr-2"></i> REGISTRAR
-                </button>
-            </form>
+                
+                <form method="POST" action="{{ url_for('registrar_asistencia') }}" class="space-y-4">
+                    <input type="hidden" name="clase_id" value="{{ c.id }}">
+                    <div class="form-group">
+                        <label class="form-label text-xs uppercase text-gray-500 font-bold mb-1 block">Registrar Alumno</label>
+                        <select name="alumno_id" required class="form-control bg-[#1a1a2e] border-gray-700 text-white w-full py-2 px-3 rounded-md focus:ring-2 focus:ring-red-500 appearance-none">
+                            <option value="" class="bg-[#1a1a2e]">Seleccionar alumno...</option>
+                            {% for a in alumnos_activos %}
+                            <option value="{{ a.id }}" class="bg-[#1a1a2e] text-white">
+                                {{ a.nombre }} {% if a.morosidad %}(Deuda){% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success w-full py-3 font-bold uppercase text-xs tracking-widest">
+                        <i class="fas fa-check-circle mr-2"></i> MARCAR PRESENTE
+                    </button>
+                </form>
+            </div>
             
             {% if current_user.role == 'admin' %}
-            <div class="mt-4 pt-4 border-t border-white/5 text-center">
-                <a href="{{ url_for('eliminar_clase', id=c.id) }}" class="text-gray-500 hover:text-red-400 text-xs transition-colors" onclick="return confirm('¿Eliminar esta clase?')">
-                    <i class="fas fa-trash-alt mr-1"></i> ELIMINAR CLASE
+            <div class="mt-6 pt-4 border-t border-white/5 text-center">
+                <a href="{{ url_for('eliminar_clase', id=c.id) }}" class="text-gray-500 hover:text-red-500 text-xs transition-all uppercase font-semibold" onclick="return confirm('¿Seguro deseas eliminar esta clase?')">
+                    <i class="fas fa-trash-alt mr-1"></i> Eliminar Horario
                 </a>
             </div>
             {% endif %}
@@ -61,38 +68,45 @@
     {% endfor %}
 </div>
 
-<div id="modalClase" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 backdrop-blur-sm">
-    <div class="card w-full max-w-md mx-4">
-        <div class="card-header flex justify-between items-center border-b border-white/10">
-            <h3 class="font-bold uppercase tracking-wide">Configurar Nueva Clase</h3>
-            <button onclick="document.getElementById('modalClase').classList.add('hidden')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+<div id="modalClase" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center z-50 backdrop-blur-md">
+    <div class="card w-full max-w-md mx-4 shadow-2xl border border-white/20">
+        <div class="card-header flex justify-between items-center border-b border-white/10 p-4">
+            <h3 class="font-bold uppercase tracking-wider text-red-500">Configurar Nueva Actividad</h3>
+            <button onclick="document.getElementById('modalClase').classList.add('hidden')" class="text-gray-400 hover:text-white text-3xl">&times;</button>
         </div>
         <div class="card-body p-6">
-            <form method="POST" action="{{ url_for('nueva_clase') }}" class="space-y-4">
+            <form method="POST" action="{{ url_for('nueva_clase') }}" class="space-y-5">
                 <div class="form-group">
-                    <label class="form-label">Nombre de la clase</label>
-                    <input type="text" name="nombre" required class="form-control" placeholder="Ej: Boxeo Recreativo">
+                    <label class="form-label text-sm text-gray-400">Nombre de la Actividad</label>
+                    <input type="text" name="nombre" required class="form-control bg-[#1a1a2e] border-gray-700 text-white" placeholder="Ej: Boxeo, Funcional, Sparring">
                 </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div class="form-group">
-                        <label class="form-label">Día</label>
-                        <select name="dia" required class="form-control">
-                            <option value="">Elegir...</option>
-                            <option>Lunes</option><option>Martes</option><option>Miércoles</option>
-                            <option>Jueves</option><option>Viernes</option><option>Sábado</option>
+                        <label class="form-label text-sm text-gray-400">Día</label>
+                        <select name="dia" required class="form-control bg-[#1a1a2e] border-gray-700 text-white">
+                            <option value="" class="bg-[#1a1a2e]">Día...</option>
+                            <option class="bg-[#1a1a2e]">Lunes</option>
+                            <option class="bg-[#1a1a2e]">Martes</option>
+                            <option class="bg-[#1a1a2e]">Miércoles</option>
+                            <option class="bg-[#1a1a2e]">Jueves</option>
+                            <option class="bg-[#1a1a2e]">Viernes</option>
+                            <option class="bg-[#1a1a2e]">Sábado</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Hora</label>
-                        <input type="text" name="hora" required class="form-control" placeholder="18:30">
+                        <label class="form-label text-sm text-gray-400">Hora</label>
+                        <input type="text" name="hora" required class="form-control bg-[#1a1a2e] border-gray-700 text-white" placeholder="Ej: 19:00">
                     </div>
                 </div>
+                
                 <div class="form-group">
-                    <label class="form-label">Cupo Máximo</label>
-                    <input type="number" name="capacidad" value="20" class="form-control">
+                    <label class="form-label text-sm text-gray-400">Cupo de Alumnos</label>
+                    <input type="number" name="capacidad" value="20" class="form-control bg-[#1a1a2e] border-gray-700 text-white">
                 </div>
-                <button type="submit" class="btn btn-primary w-full py-3 mt-2">
-                    <i class="fas fa-save mr-2"></i> GUARDAR CLASE
+                
+                <button type="submit" class="btn btn-primary w-full py-4 mt-2 font-bold uppercase tracking-widest shadow-lg shadow-red-900/40">
+                    <i class="fas fa-save mr-2"></i> GUARDAR ACTIVIDAD
                 </button>
             </form>
         </div>
