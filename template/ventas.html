@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Ventas{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold">Ventas</h2>
+            <p class="text-gray-500 text-sm">Registro de ventas y productos</p>
+        </div>
+        <button onclick="document.getElementById('modalProducto').classList.remove('hidden')" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Agregar Producto
+        </button>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Registrar Venta</h3></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('venta_rapida') }}">
+                <div class="form-group">
+                    <label class="form-label">Producto</label>
+                    <select name="producto_id" required class="form-control">
+                        <option value="">Seleccionar</option>
+                        {% for p in productos %}
+                        <option value="{{ p.id }}">{{ p.nombre }} - ${{ p.precio }} (Stock: {{ p.stock }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" value="1" min="1" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-success w-full">Registrar Venta</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Inventario</h3></div>
+        <div class="card-body">
+            <div class="table-container">
+                <table class="w-full">
+                    <thead>
+                        <tr><th>Producto</th><th>Precio</th><th>Stock</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in productos %}
+                        <tr>
+                            <td>{{ p.nombre }}</td>
+                            <td>${{ p.precio }}</td>
+                            <td>{{ p.stock }}</td>
+                            <td><a href="#" class="text-red-500">Eliminar</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header"><h3 class="font-semibold">Historial de Ventas</h3></div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="w-full">
+                <thead>
+                    <tr><th>Fecha</th><th>Producto</th><th>Cantidad</th><th>Monto</th><th>Vendedor</th></tr>
+                </thead>
+                <tbody>
+                    {% for v in ventas %}
+                    <tr>
+                        <td class="text-sm">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ v.producto_nombre }}</td>
+                        <td>{{ v.cantidad }}</td>
+                        <td class="text-green-600">${{ v.monto }}</td>
+                        <td class="text-sm">{{ v.usuario.username if v.usuario else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Producto -->
+<div id="modalProducto" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="card w-full max-w-md">
+        <div class="card-header">
+            <h3 class="font-semibold">Agregar Producto</h3>
+            <button onclick="document.getElementById('modalProducto').classList.add('hidden')">&times;</button>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('nuevo_producto') }}">
+                <div class="form-group">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" name="nombre" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Precio ($)</label>
+                    <input type="number" name="precio" step="0.01" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Stock inicial</label>
+                    <input type="number" name="stock" value="0" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Agregar Producto</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

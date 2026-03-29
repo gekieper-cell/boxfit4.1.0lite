@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Usuarios{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold">Usuarios</h2>
+            <p class="text-gray-500 text-sm">Gestión de usuarios del sistema</p>
+        </div>
+        <button onclick="document.getElementById('modalUsuario').classList.remove('hidden')" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nuevo Usuario
+        </button>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Usuarios Registrados</h3></div>
+        <div class="card-body">
+            <div class="space-y-2">
+                {% for u in usuarios %}
+                <div class="flex items-center justify-between py-2 border-b">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-gray-500"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">{{ u.username }}</p>
+                            <span class="text-xs {% if u.role == 'admin' %}text-blue-500{% else %}text-gray-500{% endif %}">
+                                {{ u.role|title }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        {% if u.id != current_user.id %}
+                        <a href="{{ url_for('reset_password', id=u.id) }}" class="text-yellow-500" onclick="return confirm('¿Restablecer contraseña a 123456?')" title="Resetear contraseña">
+                            <i class="fas fa-key"></i>
+                        </a>
+                        <a href="{{ url_for('eliminar_usuario', id=u.id) }}" class="text-red-500" onclick="return confirm('¿Eliminar este usuario?')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Información</h3></div>
+        <div class="card-body">
+            <div class="space-y-3">
+                <div class="p-3 bg-blue-50 rounded-lg">
+                    <i class="fas fa-shield-alt text-blue-500 mr-2"></i>
+                    <span class="font-medium">Administrador</span>
+                    <p class="text-sm text-gray-600 mt-1">Acceso total al sistema. Puede gestionar usuarios, ver ventas y resetear contraseñas.</p>
+                </div>
+                <div class="p-3 bg-gray-50 rounded-lg">
+                    <i class="fas fa-user-check text-gray-500 mr-2"></i>
+                    <span class="font-medium">Operador</span>
+                    <p class="text-sm text-gray-600 mt-1">Puede gestionar alumnos, clases y registrar ventas. No ve el módulo de ventas ni usuarios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Usuario -->
+<div id="modalUsuario" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="card w-full max-w-md">
+        <div class="card-header">
+            <h3 class="font-semibold">Nuevo Usuario</h3>
+            <button onclick="document.getElementById('modalUsuario').classList.add('hidden')">&times;</button>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('nuevo_usuario') }}">
+                <div class="form-group">
+                    <label class="form-label">Usuario</label>
+                    <input type="text" name="username" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" name="password" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rol</label>
+                    <select name="role" class="form-control">
+                        <option value="operador">Operador</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Crear Usuario</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
