@@ -21,7 +21,7 @@
             color: #e5e7eb;
             min-height: 100vh;
             margin: 0;
-            overflow-x: hidden; /* Evita el scroll horizontal en toda la página */
+            overflow-x: hidden;
         }
         
         .hero-overlay {
@@ -110,7 +110,7 @@
             justify-content: center;
             margin-right: 12px;
             font-size: 18px;
-            flex-shrink: 0; /* Evita que el avatar se deforme */
+            flex-shrink: 0;
         }
         
         /* NAVEGACIÓN */
@@ -140,43 +140,4 @@
         
         .sidebar a:hover {
             background: rgba(16,185,129,0.2);
-            color: white;
-            border-left-color: #10b981;
-            transform: translateX(4px);
-        }
-        
-        .sidebar a.active {
-            background: linear-gradient(90deg, rgba(16,185,129,0.3), transparent);
-            color: white;
-            border-left-color: #10b981;
-        }
-        
-        /* MAIN CONTENT */
-        .main-content {
-            margin-left: 280px;
-            padding: 32px;
-            min-height: 100vh;
-            transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* CARDS GLASSMORPHISM */
-        .glass-card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 24px;
-            overflow: hidden;
-            margin-bottom: 24px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            width: 100%;
-        }
-        
-        .glass-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-        
-        .card-header {
-            padding: 20px 24px; /* Ajustado para móviles */
-            background: rgba(255,255,255,
+            color: white
