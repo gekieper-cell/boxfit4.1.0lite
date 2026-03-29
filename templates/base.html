@@ -66,15 +66,55 @@
             text-align: center;
         }
         
+        /* LOGO-MINI RESPONSIVE 🥊 */
         .logo-mini {
-			width: 60px;
-			height: 60px;
-			background: url('/static/images/logo-mini.jpg') center/cover no-repeat;
-			border-radius: 16px;
-			margin: 0 auto 16px;
-			backdrop-filter: blur(10px);
-			border: 2px solid rgba(255,255,255,0.3);
-			box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            /* DESKTOP */
+            width: 60px;
+            height: 60px;
+            background: url('/static/images/logo-mini.jpg') center/cover no-repeat;
+            border-radius: 16px;
+            margin: 0 auto 16px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+        }
+        
+        /* TABLET */
+        @media (max-width: 1024px) {
+            .logo-mini {
+                width: 52px;
+                height: 52px;
+                border-radius: 14px;
+            }
+        }
+        
+        /* MÓVIL */
+        @media (max-width: 768px) {
+            .logo-mini {
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                margin-bottom: 12px;
+                box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+            }
+            .sidebar-header {
+                padding: 16px 12px !important;
+            }
+        }
+        
+        /* MÓVIL PEQUEÑO */
+        @media (max-width: 480px) {
+            .logo-mini {
+                width: 40px;
+                height: 40px;
+                border-radius: 10px;
+                margin-bottom: 10px;
+            }
+            .sidebar h1 {
+                font-size: 20px !important;
+                letter-spacing: 1px !important;
+            }
         }
         
         .sidebar h1 {
@@ -229,290 +269,4 @@
         }
         
         /* FORMULARIOS */
-        .form-control {
-            width: 100%;
-            padding: 14px 18px;
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            background: rgba(255,255,255,0.08);
-            color: white;
-            font-size: 15px;
-            transition: all 0.3s;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: #10b981;
-            background: rgba(255,255,255,0.12);
-            box-shadow: 0 0 0 4px rgba(16,185,129,0.1);
-        }
-        
-        .form-control::placeholder {
-            color: rgba(255,255,255,0.6);
-        }
-        
-        .form-label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #f3f4f6;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* TABLAS */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        
-        th {
-            background: linear-gradient(90deg, rgba(16,185,129,0.2), rgba(5,150,105,0.2));
-            padding: 16px 20px;
-            text-align: left;
-            font-weight: 700;
-            font-size: 13px;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        td {
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: #e5e7eb;
-        }
-        
-        tr:hover {
-            background: rgba(16,185,129,0.1);
-        }
-        
-        /* BADGES */
-        .badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        
-        .badge-success { 
-            background: rgba(16,185,129,0.2); 
-            color: #10b981; 
-            border: 1px solid rgba(16,185,129,0.3);
-        }
-        
-        /* ANIMACIONES */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .glass-card, .sidebar {
-            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* MOBILE RESPONSIVE */
-        @media (max-width: 1024px) {
-            .sidebar { 
-                transform: translateX(-100%); 
-                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px 16px; }
-        }
-        
-        .mobile-menu-btn {
-            display: none;
-            position: fixed;
-            top: 24px;
-            left: 24px;
-            z-index: 60;
-            background: linear-gradient(45deg, #10b981, #059669);
-            color: white;
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            border: none;
-            font-size: 18px;
-            box-shadow: 0 8px 25px rgba(16,185,129,0.4);
-            backdrop-filter: blur(10px);
-        }
-        
-        @media (max-width: 1024px) {
-            .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
-        }
-        
-        .mobile-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 45;
-            backdrop-filter: blur(5px);
-        }
-        
-        .mobile-overlay.open { display: block; }
-        
-        /* GRIDS */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        
-        .stat-card {
-            background: rgba(255,255,255,0.08);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 28px;
-            text-align: center;
-            transition: all 0.4s;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-        
-        .stat-number {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 48px;
-            font-weight: 700;
-            background: linear-gradient(45deg, #10b981, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-        }
-        
-        /* ALERTS */
-        .alert {
-            padding: 16px 20px;
-            border-radius: 16px;
-            margin-bottom: 24px;
-            backdrop-filter: blur(10px);
-            animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .alert-success {
-            background: rgba(16,185,129,0.2);
-            border: 1px solid rgba(16,185,129,0.3);
-            color: #dcfce7;
-        }
-    </style>
-</head>
-<body>
-    <!-- FONDO LOGO -->
-    <div class="logo-bg"></div>
-    <div class="hero-overlay"></div>
-
-    {% if current_user.is_authenticated %}
-    <!-- MOBILE MENU BUTTON -->
-    <button onclick="toggleSidebar()" class="mobile-menu-btn" title="Menú">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <!-- MOBILE OVERLAY -->
-    <div onclick="toggleSidebar()" class="mobile-overlay" id="mobileOverlay"></div>
-
-    <!-- SIDEBAR PREMIUM -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="logo-mini">
-                <i class="fas fa-boxing-glove text-white text-2xl"></i>
-            </div>
-            <h1>BOXING CLUB</h1>
-            <p class="text-xs text-gray-400 mt-1">El Profe Medina</p>
-        </div>
-        
-        <div class="user-info">
-            <div class="flex items-center">
-                <div class="user-avatar">
-                    <i class="fas fa-user text-white"></i>
-                </div>
-                <div>
-                    <p class="text-white font-semibold text-sm">{{ current_user.username }}</p>
-                    <p class="text-gray-400 text-xs">
-                        {% if current_user.role == 'admin' %}👑 Administrador{% else %}🥊 Operador{% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <nav class="sidebar-nav">
-            <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">
-                <i class="fas fa-tachometer-alt"></i>
-                Dashboard
-            </a>
-            <a href="{{ url_for('alumnos') }}" class="{% if 'alumno' in request.endpoint %}active{% endif %}">
-                <i class="fas fa-users"></i>
-                Alumnos
-            </a>
-            <a href="{{ url_for('clases') }}" class="{% if request.endpoint == 'clases' %}active{% endif %}">
-                <i class="fas fa-calendar-alt"></i>
-                Clases
-            </a>
-            {% if current_user.role == 'admin' %}
-            <a href="{{ url_for('ventas') }}" class="{% if request.endpoint == 'ventas' %}active{% endif %}">
-                <i class="fas fa-dollar-sign"></i>
-                Ventas
-            </a>
-            <a href="{{ url_for('usuarios') }}" class="{% if request.endpoint == 'usuarios' %}active{% endif %}">
-                <i class="fas fa-user-shield"></i>
-                Usuarios
-            </a>
-            {% endif %}
-            <div style="border-top:1px solid rgba(255,255,255,0.1); margin: 24px 24px;"></div>
-            <a href="{{ url_for('logout') }}" class="text-red-400 hover:text-red-300">
-                <i class="fas fa-sign-out-alt"></i>
-                Cerrar Sesión
-            </a>
-        </nav>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main-content">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}bg-red-500/20 border-red-500/30 text-red-100{% else %}bg-blue-500/20 border-blue-500/30 text-blue-100{% endif %} flex items-center">
-                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} mr-3 text-lg"></i>
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        {% block content %}{% endblock %}
-    </main>
-
-    <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('mobileOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('open');
-        }
-
-        // Auto hide alerts
-        setTimeout(() => {
-            document.querySelectorAll('.alert').forEach(a => {
-                a.style.opacity = '0';
-                a.style.transform = 'translateX(100%)';
-                setTimeout(() => a.remove(), 400);
-            });
-        }, 5000);
-    </script>
-
-    {% else %}
-    {% block auth_content %}{% endblock %}
-    {% endif %}
-</body>
-</html>
+        .form-control
