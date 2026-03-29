@@ -1,154 +1,153 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - Boxing Club{% endblock %}
+{% block title %}Dashboard - BoxFit{% endblock %}
 
 {% block content %}
-<!-- HEADER DASHBOARD -->
 <div class="glass-card mb-8">
-    <div class="card-header flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center">
-            <i class="fas fa-chart-line text-white text-xl"></i>
+    <div class="card-header flex items-center gap-4 p-6">
+        <div class="w-14 h-14 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-900/20">
+            <i class="fas fa-chart-line text-white text-2xl"></i>
         </div>
         <div>
-            <h2 class="text-3xl font-bold" style="font-family: 'Bebas Neue', sans-serif;">DASHBOARD</h2>
-            <p class="text-gray-300 text-sm mt-1">¡Bienvenido, <strong>{{ current_user.username }}</strong>!</p>
+            <h2 class="text-3xl font-bold tracking-tight text-white" style="font-family: 'Bebas Neue', sans-serif;">DASHBOARD BOXFIT</h2>
+            <p class="text-gray-400 text-sm mt-1 uppercase tracking-widest">Panel de Control de <strong>{{ current_user.username }}</strong></p>
         </div>
     </div>
 </div>
 
-<!-- ALERTAS CRÍTICAS 3D -->
 {% if stats.alumnos_alerta > 0 %}
-<div class="glass-card mb-6 p-6 border-l-4 border-yellow-400" style="background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4);">
-    <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg">
-            <i class="fas fa-exclamation-triangle text-white text-xl"></i>
-        </div>
-        <div>
-            <h3 class="text-xl font-bold text-yellow-100">⚠️ CUOTAS POR VENCER</h3>
-            <p class="text-yellow-200 text-lg mt-1">{{ stats.alumnos_alerta }} alumnos vencen en los próximos días</p>
+<a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="block mb-6 group">
+    <div class="glass-card p-6 border-l-4 border-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 transition-all duration-300">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-yellow-100 uppercase" style="font-family: 'Bebas Neue', sans-serif;">CUOTAS POR VENCER</h3>
+                <p class="text-yellow-200/80 text-lg">{{ stats.alumnos_alerta }} alumnos vencen en los próximos 7 días</p>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-yellow-500/50 group-hover:text-yellow-500"></i>
         </div>
     </div>
-</div>
+</a>
 {% endif %}
 
 {% if stats.alumnos_vencidos > 0 %}
-<div class="glass-card mb-8 p-6 border-l-4 border-red-400" style="background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4);">
-    <div class="flex items-center gap-4">
-        <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-            <i class="fas fa-times-circle text-white text-xl"></i>
-        </div>
-        <div>
-            <h3 class="text-xl font-bold text-red-100">❌ ALUMNOS CON DEUDA</h3>
-            <p class="text-red-200 text-lg mt-1">{{ stats.alumnos_vencidos }} alumnos con cuotas vencidas</p>
-            <a href="{{ url_for('alumnos') }}" class="btn btn-danger mt-3 inline-flex">
-                <i class="fas fa-users mr-2"></i> Ver Morosos
-            </a>
+<a href="{{ url_for('alumnos', filtro='deudores') }}" class="block mb-8 group">
+    <div class="glass-card p-6 border-l-4 border-red-500 bg-red-500/10 hover:bg-red-500/20 transition-all duration-300">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <i class="fas fa-times-circle text-white text-xl"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-red-100 uppercase" style="font-family: 'Bebas Neue', sans-serif;">ALUMNOS CON DEUDA</h3>
+                <p class="text-red-200/80 text-lg">{{ stats.alumnos_vencidos }} alumnos con cuotas vencidas</p>
+            </div>
+            <i class="fas fa-chevron-right ml-auto text-red-500/50 group-hover:text-red-500"></i>
         </div>
     </div>
-</div>
+</a>
 {% endif %}
 
-<!-- STATS PRINCIPALES GIGANTES -->
-<div class="stats-grid">
-    <div class="stat-card text-center">
-        <div class="text-5xl mb-4" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.total_alumnos }}</div>
-        <p class="text-gray-300 uppercase tracking-wider text-sm font-semibold mb-2">Total Alumnos</p>
-        <i class="fas fa-users text-3xl text-green-400 mb-4"></i>
-        <div class="w-20 h-1 bg-gradient-to-r from-green-400 to-transparent rounded-full mx-auto"></div>
-    </div>
-    
-    <div class="stat-card text-center" style="background: rgba(239,68,68,0.2); border: 1px solid rgba(239,68,68,0.3);">
-        <div class="text-5xl mb-4 text-red-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_vencidos }}</div>
-        <p class="text-red-200 uppercase tracking-wider text-sm font-semibold mb-2">Con Deuda</p>
-        <i class="fas fa-exclamation-circle text-3xl text-red-400 mb-4"></i>
-        <div class="w-20 h-1 bg-gradient-to-r from-red-400 to-transparent rounded-full mx-auto"></div>
-    </div>
-    
-    <div class="stat-card text-center">
-        <div class="text-5xl mb-4" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.asistencias_hoy }}</div>
-        <p class="text-gray-300 uppercase tracking-wider text-sm font-semibold mb-2">Asistencias Hoy</p>
-        <i class="fas fa-user-check text-3xl text-emerald-400 mb-4"></i>
-        <div class="w-20 h-1 bg-gradient-to-r from-emerald-400 to-transparent rounded-full mx-auto"></div>
-    </div>
-    
-    <div class="stat-card text-center" style="background: rgba(251,191,36,0.2); border: 1px solid rgba(251,191,36,0.3);">
-        <div class="text-5xl mb-4 text-yellow-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_morosos }}</div>
-        <p class="text-yellow-200 uppercase tracking-wider text-sm font-semibold mb-2">Próximos a Vencer</p>
-        <i class="fas fa-clock text-3xl text-yellow-400 mb-4"></i>
-        <div class="w-20 h-1 bg-gradient-to-r from-yellow-400 to-transparent rounded-full mx-auto"></div>
-    </div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <a href="{{ url_for('alumnos') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-blue-500/30">
+        <div class="text-5xl mb-2 text-white" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.total_alumnos }}</div>
+        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold mb-4">Total Alumnos</p>
+        <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-400">
+            <i class="fas fa-users text-xl"></i>
+        </div>
+    </a>
+
+    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-red-500/30 bg-red-500/5">
+        <div class="text-5xl mb-2 text-red-500" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_vencidos }}</div>
+        <p class="text-red-200/60 uppercase tracking-wider text-xs font-bold mb-4">Con Deuda</p>
+        <div class="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500">
+            <i class="fas fa-hand-holding-dollar text-xl"></i>
+        </div>
+    </a>
+
+    <a href="{{ url_for('clases', vista='hoy') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-green-500/30">
+        <div class="text-5xl mb-2 text-green-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.asistencias_hoy }}</div>
+        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold mb-4">Presentes Hoy</p>
+        <div class="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-400">
+            <i class="fas fa-user-check text-xl"></i>
+        </div>
+    </a>
+
+    <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-yellow-500/30 bg-yellow-500/5">
+        <div class="text-5xl mb-2 text-yellow-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_alerta }}</div>
+        <p class="text-yellow-200/60 uppercase tracking-wider text-xs font-bold mb-4">Próximos Venc.</p>
+        <div class="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto text-yellow-400">
+            <i class="fas fa-clock text-xl"></i>
+        </div>
+    </a>
 </div>
 
-<!-- ROW PRINCIPAL: CLASES + VENTA RÁPIDA -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-    <!-- CLASES DE HOY -->
-    <div class="glass-card">
-        <div class="card-header flex items-center justify-between">
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <div class="glass-card flex flex-col">
+        <div class="card-header flex items-center justify-between p-5 border-b border-white/5">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-calendar-day text-white"></i>
+                <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400">
+                    <i class="fas fa-calendar-day"></i>
                 </div>
-                <h3 class="text-xl font-bold">📅 CLASES DE HOY</h3>
+                <h3 class="text-xl font-bold tracking-tight">CLASES DE HOY</h3>
             </div>
-            <a href="{{ url_for('clases') }}" class="text-green-300 hover:text-green-200 text-sm font-semibold flex items-center gap-1">
-                Ver todas <i class="fas fa-arrow-right"></i>
+            <a href="{{ url_for('clases', vista='semanal') }}" class="text-blue-400 hover:text-white text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-colors">
+                Semanal <i class="fas fa-arrow-right"></i>
             </a>
         </div>
-        <div class="card-body">
+        <div class="p-5 space-y-3">
             {% if stats.clases_hoy %}
-                <div class="space-y-3">
-                    {% for clase in stats.clases_hoy %}
-                    <div class="glass-card p-4 hover:scale-[1.02] transition-all duration-300 border border-green-500/30">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-lg text-white">{{ clase.nombre }}</h4>
-                                <p class="text-green-300 text-sm font-semibold">{{ clase.hora }}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="badge badge-success text-sm px-3 py-1">Cap: {{ clase.capacidad }}</span>
-                            </div>
+                {% for clase in stats.clases_hoy %}
+                <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-red-500/30 transition-all group">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-bold text-lg text-white group-hover:text-red-400 transition-colors">{{ clase.nombre }}</h4>
+                            <p class="text-gray-400 text-sm font-medium"><i class="far fa-clock mr-1 text-red-500"></i> {{ clase.hora }}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-gray-500 uppercase block mb-1">Cupo</span>
+                            <span class="bg-red-600/20 text-red-400 px-3 py-1 rounded-lg text-sm font-bold border border-red-500/20">{{ clase.asistentes_hoy or 0 }}/{{ clase.capacidad }}</span>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             {% else %}
-                <div class="text-center py-12">
-                    <i class="fas fa-calendar-times text-4xl text-gray-500 mb-4"></i>
-                    <p class="text-gray-400 text-lg">No hay clases programadas para hoy</p>
+                <div class="text-center py-10">
+                    <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-600">
+                        <i class="fas fa-calendar-times text-2xl"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium italic">No hay clases registradas para hoy.</p>
                 </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- VENTA RÁPIDA -->
     <div class="glass-card">
-        <div class="card-header flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-bolt text-white"></i>
-                </div>
-                <h3 class="text-xl font-bold">⚡ VENTA RÁPIDA</h3>
+        <div class="card-header flex items-center gap-3 p-5 border-b border-white/5">
+            <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center text-yellow-400">
+                <i class="fas fa-bolt"></i>
             </div>
+            <h3 class="text-xl font-bold tracking-tight uppercase">Venta Directa</h3>
         </div>
-        <div class="card-body p-6">
-            <form method="POST" action="{{ url_for('venta_rapida') }}" class="space-y-4">
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('venta_rapida') }}" class="space-y-5">
                 <div>
-                    <label class="form-label">Producto</label>
-                    <select name="producto_id" required class="form-control w-full">
-                        <option value="">🔍 Seleccionar Producto</option>
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Producto / Insumo</label>
+                    <select name="producto_id" required class="form-control w-full bg-[#1a1a2e] border-gray-700 text-white py-3">
+                        <option value="" class="bg-[#1a1a2e]">🔍 Seleccionar para vender...</option>
                         {% for p in stats.productos %}
-                        <option value="{{ p.id }}">{{ p.nombre }} - ${{ p.precio }} (Stock: {{ p.stock }})</option>
+                        <option value="{{ p.id }}" class="bg-[#1a1a2e]">{{ p.nombre }} — ${{ "{:,.0f}".format(p.precio) }} (Stock: {{ p.stock }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="flex gap-3">
-                    <div class="flex-1">
-                        <label class="form-label">Cantidad</label>
-                        <input type="number" name="cantidad" value="1" min="1" max="50" class="form-control w-full">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Cantidad</label>
+                        <input type="number" name="cantidad" value="1" min="1" class="form-control w-full bg-[#1a1a2e] border-gray-700 text-white py-3">
                     </div>
-                    <div class="flex items-end pt-8">
-                        <button type="submit" class="btn btn-success !w-full h-14">
-                            <i class="fas fa-cart-plus"></i>
-                            <span class="font-bold">VENDER</span>
+                    <div class="flex items-end">
+                        <button type="submit" class="btn btn-primary w-full py-3 h-[50px] shadow-lg shadow-red-900/40 font-bold uppercase tracking-widest">
+                            <i class="fas fa-cart-plus mr-2"></i> Cobrar
                         </button>
                     </div>
                 </div>
@@ -157,47 +156,60 @@
     </div>
 </div>
 
-<!-- ÚLTIMOS ALUMNOS -->
-<div class="glass-card">
-    <div class="card-header flex items-center justify-between">
+<div class="glass-card mb-10 overflow-hidden">
+    <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <i class="fas fa-user-friends text-white"></i>
+            <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400">
+                <i class="fas fa-user-plus"></i>
             </div>
-            <h3 class="text-xl font-bold">🥊 ÚLTIMOS ALUMNOS</h3>
+            <h3 class="text-xl font-bold tracking-tight">ÚLTIMOS INGRESOS</h3>
         </div>
-        <a href="{{ url_for('alumnos') }}" class="text-green-300 hover:text-green-200 text-sm font-semibold flex items-center gap-1">
-            Ver todos <i class="fas fa-arrow-right"></i>
-        </a>
+        <a href="{{ url_for('alumnos') }}" class="text-gray-400 hover:text-white text-xs font-bold uppercase tracking-widest">Ver listado completo</a>
     </div>
-    <div class="card-body">
-        <div class="space-y-3">
-            {% for a in stats.ultimos_alumnos %}
-            <div class="glass-card p-4 hover:bg-white/5 transition-all border-l-4 border-green-400/50">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center text-white font-bold">
-                            {{ a.nombre.split(' ')[0][0] | upper }}{{ a.nombre.split(' ')[-1][0] | upper }}
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-lg text-white">{{ a.nombre }}</h4>
-                            <p class="text-sm text-gray-300 flex items-center gap-2">
-                                <span class="w-2 h-2 bg-green-400 rounded-full"></span>
-                                {{ a.tipo_clase or 'Sin plan' }} • {{ a.fecha_inicio.strftime('%d/%m') }}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        {% if a.morosidad %}
-                        <span class="badge text-xs px-3 py-1" style="background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">DEUDA</span>
-                        {% endif %}
-                        <a href="{{ url_for('editar_alumno', id=a.id) }}" class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center text-white transition-all">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
+    <div class="p-0">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-white/5 text-gray-500 text-[10px] uppercase tracking-[2px] font-bold">
+                    <tr>
+                        <th class="px-6 py-4">Alumno</th>
+                        <th class="px-6 py-4">Plan / Actividad</th>
+                        <th class="px-6 py-4">Estado</th>
+                        <th class="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for a in stats.ultimos_alumnos %}
+                    <tr class="hover:bg-white/5 transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-800 rounded-lg flex items-center justify-center text-white font-bold text-xs">
+                                    {{ a.nombre[:2] | upper }}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-white group-hover:text-red-400 transition-colors">{{ a.nombre }}</p>
+                                    <p class="text-xs text-gray-500">Ingreso: {{ a.fecha_inicio.strftime('%d/%m/%Y') }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-sm text-gray-300 font-medium">{{ a.tipo_clase or 'General' }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if a.morosidad %}
+                                <span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-red-500/20">Deudora</span>
+                            {% else %}
+                                <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-green-500/20">Al día</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ url_for('editar_alumno', id=a.id) }}" class="text-gray-500 hover:text-white transition-colors">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
