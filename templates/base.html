@@ -6,144 +6,177 @@
     <title>{% block title %}Boxing Club El Profe Medina{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap');
+        
         * { 
-            font-family: 'Roboto', sans-serif; 
+            font-family: 'Roboto', system-ui, -apple-system, sans-serif; 
+            box-sizing: border-box;
         }
         
-        body { 
-            background: #0a0a0a; 
-            color: white; 
+        /* FONDO BOXING PRO */
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background-attachment: fixed;
+            color: #e5e7eb;
             min-height: 100vh;
             margin: 0;
+            overflow-x: hidden; /* Evita el scroll horizontal en toda la página */
         }
         
-        /* LOGO RESPONSIVE */
+        .hero-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: -1;
+        }
+        
+        /* LOGO BACKGROUND */
+        .logo-bg {
+            background: url('/static/images/logo-boxing.jpg') center/cover no-repeat fixed;
+            background-blend-mode: overlay;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+            z-index: -2;
+        }
+        
+        /* SIDEBAR PREMIUM */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 280px;
+            background: linear-gradient(180deg, rgba(10,10,10,0.95) 0%, rgba(26,26,46,0.95) 100%);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            overflow-y: auto;
+            z-index: 50;
+            box-shadow: 4px 0 40px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
         .logo-mini {
-            width: 60px; height: 60px;
-            background: url('/static/images/logo-mini.jpg') center/cover;
+            width: 60px;
+            height: 60px;
+            background: url('/static/images/logo-mini.jpg') center/cover no-repeat;
             border-radius: 16px;
             margin: 0 auto 16px;
-            border: 2px solid #10b981;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        /* SIDEBAR */
-        .sidebar {
-            position: fixed; left: 0; top: 0; bottom: 0; width: 280px;
-            background: rgba(10,10,10,0.95);
-            z-index: 50;
+        .sidebar h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 24px;
+            background: linear-gradient(45deg, #10b981, white);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0;
+            letter-spacing: 2px;
         }
         
+        .user-info {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(45deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 18px;
+            flex-shrink: 0; /* Evita que el avatar se deforme */
+        }
+        
+        /* NAVEGACIÓN */
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 14px 24px;
+            color: #9ca3af;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar a i { 
+            width: 20px; 
+            margin-right: 16px;
+            font-size: 16px;
+            opacity: 0.8;
+            text-align: center;
+        }
+        
+        .sidebar a:hover {
+            background: rgba(16,185,129,0.2);
+            color: white;
+            border-left-color: #10b981;
+            transform: translateX(4px);
+        }
+        
+        .sidebar a.active {
+            background: linear-gradient(90deg, rgba(16,185,129,0.3), transparent);
+            color: white;
+            border-left-color: #10b981;
+        }
+        
+        /* MAIN CONTENT */
         .main-content {
             margin-left: 280px;
             padding: 32px;
+            min-height: 100vh;
+            transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* MOBILE */
-        @media (max-width: 1024px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 20px; }
-            
-            .logo-mini { 
-                width: 44px; height: 44px; 
-                margin-bottom: 12px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .logo-mini { width: 40px; height: 40px; }
-        }
-        
+        /* CARDS GLASSMORPHISM */
         .glass-card {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(20px);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 24px;
             border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .btn {
-            background: linear-gradient(45deg, #10b981, #059669);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-        }
-        
-        .form-control {
+            border-radius: 24px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
             width: 100%;
-            padding: 12px;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            background: rgba(255,255,255,0.1);
-            color: white;
         }
         
-        .form-label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
-    </style>
-</head>
-<body>
-    {% if current_user.is_authenticated %}
-    <button onclick="toggleSidebar()" class="mobile-menu-btn" style="display:none; position:fixed; top:20px; left:20px; background:#10b981; color:white; width:50px; height:50px; border-radius:10px; border:none; z-index:60;">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <div onclick="toggleSidebar()" class="mobile-overlay" id="mobileOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:45;"></div>
-
-    <aside class="sidebar" id="sidebar">
-        <div style="padding:24px 20px; text-align:center; border-bottom:1px solid #333;">
-            <div class="logo-mini"></div>
-            <h1 style="font-family:'Bebas Neue',sans-serif; font-size:24px; background:linear-gradient(45deg,#10b981,white); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:0;">BOXING CLUB</h1>
-            <p style="color:#aaa; font-size:12px; margin-top:4px;">El Profe Medina</p>
-        </div>
         
-        <div style="padding:20px; border-bottom:1px solid #333; background:rgba(255,255,255,0.05);">
-            <div style="display:flex; align-items:center;">
-                <div style="width:48px; height:48px; background:linear-gradient(45deg,#10b981,#059669); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:12px;">
-                    <i class="fas fa-user" style="color:white;"></i>
-                </div>
-                <div>
-                    <p style="color:white; font-weight:600; margin:0;">{{ current_user.username }}</p>
-                    <p style="color:#aaa; font-size:12px; margin:2px 0 0 0;">
-                        {% if current_user.role == 'admin' %}👑 Admin{% else %}🥊 Operador{% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        
-        <nav style="padding:20px 0;">
-            <a href="{{ url_for('index') }}" style="display:block; padding:14px 24px; color:#ccc; text-decoration:none;" class="{% if request.endpoint == 'index' %}active style='background:rgba(16,185,129,0.3); color:white; border-left:4px solid #10b981;'{% endif %}">
-                <i class="fas fa-tachometer-alt" style="width:20px; margin-right:16px;"></i>Dashboard
-            </a>
-            <a href="{{ url_for('alumnos') }}" style="display:block; padding:14px 24px; color:#ccc; text-decoration:none;" class="{% if 'alumno' in request.endpoint %}active style='background:rgba(16,185,129,0.3); color:white; border-left:4px solid #10b981;'{% endif %}">
-                <i class="fas fa-users" style="width:20px; margin-right:16px;"></i>Alumnos
-            </a>
-            <!-- resto menú igual -->
-        </nav>
-    </aside>
-
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
-
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('mobileOverlay').classList.toggle('open');
-            document.querySelector('.mobile-menu-btn').style.display = 'flex';
-        }
-    </script>
-
-    {% else %}
-    {% block auth_content %}{% endblock %}
-    {% endif %}
-</body>
-</html>
+        .card-header {
+            padding: 20px 24px; /* Ajustado para móviles */
+            background: rgba(255,255,255,
