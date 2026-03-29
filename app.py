@@ -4,7 +4,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta
 from datetime import datetime, date, timedelta
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text # Importamos text para la migración
 
 app = Flask(__name__)
 
@@ -26,6 +26,25 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# ====================== BLOQUE DE MIGRACIÓN AUTOMÁTICA ======================
+def init_db():
+    with app.app_context():
+        db.create_all()
+        # Intentar agregar columnas nuevas si no existen (PostgreSQL/SQLite)
+        try:
+            db.session.execute(text('ALTER TABLE alumnos ADD COLUMN fecha_vencimiento DATE'))
+            db.session.commit()
+            print("Columna fecha_vencimiento agregada.")
+        except Exception:
+            db.session.rollback() # La columna ya existía
+
+        try:
+            db.session.execute(text('ALTER TABLE alumnos ADD COLUMN ultimo_pago DATE'))
+            db.session.commit()
+            print("Columna ultimo_pago agregada.")
+        except Exception:
+            db.session.rollback()
+
 # ====================== DASHBOARD ======================
 
 @app.route('/')
@@ -38,6 +57,8 @@ def index():
     
     # Próximos vencimientos
     fecha_alerta = hoy + timedelta(days=7)
+    
+    # Usamos filtros seguros
     alumnos_vencidos = Alumno.query.filter(
         Alumno.activo == True,
         Alumno.fecha_vencimiento <= hoy
@@ -96,11 +117,9 @@ def nuevo_alumno():
             f_inicio_str = request.form.get('fecha_inicio')
             fecha_inicio = datetime.strptime(f_inicio_str, '%Y-%m-%d').date() if f_inicio_str else date.today()
             
-            # Si el usuario ingresó una fecha de último pago, la usamos; si no, la de inicio
             f_pago_str = request.form.get('ultimo_pago')
             ultimo_pago = datetime.strptime(f_pago_str, '%Y-%m-%d').date() if f_pago_str else fecha_inicio
             
-            # Vencimiento automático a 30 días del último pago
             fecha_vencimiento = ultimo_pago + timedelta(days=30)
             
             nuevo = Alumno(
@@ -127,10 +146,7 @@ def nuevo_alumno():
     
     return render_template('nuevo_alumno.html')
 
-# (Aquí seguirían el resto de tus rutas como registrar_pago, clases, ventas, etc.)
-
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+    init_db() # Llamamos a la función de inicialización y migración
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
