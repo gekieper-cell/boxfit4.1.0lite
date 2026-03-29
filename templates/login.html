@@ -3,44 +3,366 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BoxFit Gym - Login</title>
+    <title>Boxing Club El Profe Medina - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap');
+        
+        * {
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* FONDO LOGO BOXING */
+        .login-bg {
+            background: url('/static/images/logo-boxing.jpg') center/cover no-repeat fixed;
+            background-blend-mode: overlay;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.08;
+            z-index: -1;
+        }
+        
+        .hero-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: -1;
+        }
+        
+        /* CONTENEDOR PRINCIPAL */
+        .login-container {
+            backdrop-filter: blur(30px);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 
+                0 25px 50px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.05);
+            animation: floatIn 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes floatIn {
+            0% { 
+                opacity: 0; 
+                transform: scale(0.8) translateY(50px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: scale(1) translateY(0); 
+            }
+        }
+        
+        /* LOGO HEADER */
+        .gym-logo {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            border-radius: 24px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 
+                0 20px 40px rgba(16,185,129,0.4),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gym-logo:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 25px 50px rgba(16,185,129,0.6);
+        }
+        
+        .gym-logo i {
+            font-size: 36px;
+            color: white;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        /* TÍTULO PRINCIPAL */
+        .login-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 42px;
+            background: linear-gradient(45deg, #10b981 0%, #34d399 50%, white 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 8px;
+            letter-spacing: 3px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .login-subtitle {
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+        
+        /* FORMULARIO */
+        .form-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            color: rgba(255,255,255,0.6);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            transition: all 0.3s;
+            z-index: 2;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 20px 20px 16px 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            color: white;
+            font-size: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            background: rgba(255,255,255,0.1);
+            box-shadow: 
+                0 0 0 4px rgba(16,185,129,0.2),
+                0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+        
+        .form-input:focus + .form-label,
+        .form-input:not(:placeholder-shown) + .form-label {
+            top: 8px;
+            left: 16px;
+            font-size: 11px;
+            color: #10b981;
+            background: rgba(10,10,10,0.95);
+            padding: 0 8px;
+            border-radius: 8px;
+        }
+        
+        .form-input::placeholder {
+            color: transparent;
+        }
+        
+        /* BOTÓN LOGIN 3D */
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            padding: 18px;
+            border-radius: 25px;
+            border: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 15px 35px rgba(16,185,129,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 
+                0 25px 50px rgba(16,185,129,0.7),
+                inset 0 1px 0 rgba(255,255,255,0.4);
+        }
+        
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .login-btn i {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+        
+        /* ALERTS */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideInRight 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .alert-success {
+            background: rgba(16,185,129,0.25);
+            border-color: rgba(16,185,129,0.4);
+            color: rgba(255,255,255,0.95);
+        }
+        
+        .alert-error {
+            background: rgba(239,68,68,0.25);
+            border-color: rgba(239,68,68,0.4);
+            color: rgba(255,255,255,0.95);
+        }
+        
+        @keyframes slideInRight {
+            from { 
+                opacity: 0; 
+                transform: translateX(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+        
+        /* FOOTER */
+        .login-footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .login-footer p {
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+        
+        /* CREDENCIALES RÁPIDAS */
+        .quick-login {
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .quick-login h4 {
+            color: rgba(255,255,255,0.8);
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .quick-login p {
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 480px) {
+            .login-title { font-size: 32px; }
+            .login-container { 
+                margin: 20px; 
+                padding: 24px; 
+            }
+        }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20">
-        <div class="text-center mb-8">
-            <div class="bg-red-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <i class="fas fa-dumbbell text-3xl text-white"></i>
-            </div>
-            <h1 class="text-3xl font-bold text-white">BoxFit Gym</h1>
-            <p class="text-gray-300 mt-2">Sistema de Gestión</p>
-        </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                <div class="mb-4 p-3 rounded-xl {% if category=='success' %}bg-green-500/20 border border-green-500 text-green-200{% elif category=='error' %}bg-red-500/20 border border-red-500 text-red-200{% endif %}">
-                    {{ message }}
+<body>
+    <!-- FONDO LOGO -->
+    <div class="login-bg"></div>
+    <div class="hero-overlay"></div>
+
+    <div class="flex items-center justify-center min-h-screen p-6">
+        <div class="login-container w-full max-w-md">
+            <!-- HEADER LOGO -->
+            <div class="text-center mb-2">
+                <div class="gym-logo">
+                    <i class="fas fa-boxing-glove"></i>
                 </div>
-            {% endfor %}
-        {% endwith %}
-        
-        <form method="POST">
-            <div class="mb-4">
-                <label class="block text-gray-300 mb-2 text-sm">Usuario</label>
-                <input type="text" name="username" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white focus:border-red-500 focus:outline-none" required autofocus>
+                <h1 class="login-title">BOXING CLUB</h1>
+                <p class="login-subtitle">El Profe Medina • Luján, Bs.As.</p>
             </div>
-            <div class="mb-6">
-                <label class="block text-gray-300 mb-2 text-sm">Contraseña</label>
-                <input type="password" name="password" class="w-full p-3 rounded-xl bg-white/10 border border-white/20 text-white focus:border-red-500 focus:outline-none" required>
+            
+            <!-- ALERTS -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-error{% endif %} flex items-center">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% endif %} mr-3 text-xl"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+            
+            <!-- FORM LOGIN -->
+            <form method="POST" class="space-y-2">
+                <div class="form-group">
+                    <input type="text" name="username" class="form-input" placeholder=" " required autofocus>
+                    <label class="form-label">Usuario</label>
+                </div>
+                
+                <div class="form-group">
+                    <input type="password" name="password" class="form-input" placeholder=" " required>
+                    <label class="form-label">Contraseña</label>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Ingresar al Sistema
+                </button>
+            </form>
+            
+            <!-- CREDENCIALES RÁPIDAS -->
+            <div class="quick-login">
+                <h4>⚡ Acceso Rápido</h4>
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Operador:</strong> operador / operador123</p>
             </div>
-            <button type="submit" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition">
-                <i class="fas fa-sign-in-alt mr-2"></i> Ingresar
-            </button>
-        </form>
-        <div class="mt-6 text-center text-gray-400 text-xs">
-            <p>© 2024 BoxFit Gym</p>
+            
+            <!-- FOOTER -->
+            <div class="login-footer">
+                <p>🥊 Boxing Club El Profe Medina • Luján, Bs.As. 2026</p>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Auto-hide alerts
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateX(100%)';
+                setTimeout(() => alert.remove(), 400);
+            });
+        }, 5000);
+    </script>
 </body>
 </html>
