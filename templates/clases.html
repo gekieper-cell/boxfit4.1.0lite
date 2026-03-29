@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Clases{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold">Clases</h2>
+            <p class="text-gray-500 text-sm">Horarios y asistencia</p>
+        </div>
+        {% if current_user.role == 'admin' %}
+        <button onclick="document.getElementById('modalClase').classList.remove('hidden')" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nueva Clase
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for c in clases %}
+    <div class="card">
+        <div class="bg-red-500 px-4 py-2">
+            <h3 class="text-lg font-bold text-white">{{ c.nombre }}</h3>
+            <p class="text-red-100 text-sm">{{ c.dia }} - {{ c.hora }}</p>
+        </div>
+        <div class="p-4">
+            <div class="flex justify-between items-center mb-3">
+                <span class="text-gray-500">Asistentes hoy:</span>
+                <span class="font-bold text-lg">{{ c.asistentes_hoy }}/{{ c.capacidad }}</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                <div class="bg-green-500 rounded-full h-2" style="width: {% if c.capacidad > 0 %}{{ (c.asistentes_hoy / c.capacidad * 100)|int }}{% else %}0{% endif %}%"></div>
+            </div>
+            
+            <form method="POST" action="{{ url_for('registrar_asistencia') }}">
+                <input type="hidden" name="clase_id" value="{{ c.id }}">
+                <div class="form-group">
+                    <label class="form-label">Seleccionar alumno</label>
+                    <select name="alumno_id" required class="form-control">
+                        <option value="">Seleccionar alumno</option>
+                        {% for a in alumnos_activos %}
+                        <option value="{{ a.id }}">{{ a.nombre }} {% if a.morosidad %}(Deuda){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success w-full">
+                    <i class="fas fa-user-check"></i> Marcar Asistencia
+                </button>
+            </form>
+            
+            {% if current_user.role == 'admin' %}
+            <div class="mt-3 pt-3 border-t">
+                <a href="{{ url_for('eliminar_clase', id=c.id) }}" class="text-red-500 text-sm" onclick="return confirm('¿Eliminar esta clase?')">
+                    <i class="fas fa-trash"></i> Eliminar clase
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Nueva Clase -->
+<div id="modalClase" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="card w-full max-w-md">
+        <div class="card-header">
+            <h3 class="font-semibold">Nueva Clase</h3>
+            <button onclick="document.getElementById('modalClase').classList.add('hidden')">&times;</button>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('nueva_clase') }}">
+                <div class="form-group">
+                    <label class="form-label">Nombre de la clase</label>
+                    <input type="text" name="nombre" required class="form-control" placeholder="Ej: Boxeo, Funcional">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Día</label>
+                    <select name="dia" required class="form-control">
+                        <option value="">Seleccionar</option>
+                        <option>Lunes</option><option>Martes</option><option>Miércoles</option>
+                        <option>Jueves</option><option>Viernes</option><option>Sábado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hora</label>
+                    <input type="text" name="hora" required class="form-control" placeholder="Ej: 18:00">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Capacidad máxima</label>
+                    <input type="number" name="capacidad" value="20" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Crear Clase</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold">Dashboard</h2>
+            <p class="text-gray-500 text-sm">Bienvenido, {{ current_user.username }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Alertas de morosidad -->
+{% if stats.alumnos_alerta > 0 %}
+<div class="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
+    <div class="flex items-center">
+        <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3"></i>
+        <div>
+            <p class="font-semibold text-yellow-800">⚠️ Alumnos próximos a vencer</p>
+            <p class="text-yellow-700 text-sm">{{ stats.alumnos_alerta }} alumnos tienen la cuota por vencer en los próximos días</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if stats.alumnos_vencidos > 0 %}
+<div class="bg-red-100 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+    <div class="flex items-center">
+        <i class="fas fa-times-circle text-red-600 text-xl mr-3"></i>
+        <div>
+            <p class="font-semibold text-red-800">❌ Alumnos con deuda</p>
+            <p class="text-red-700 text-sm">{{ stats.alumnos_vencidos }} alumnos tienen la cuota vencida</p>
+            <a href="{{ url_for('alumnos') }}" class="text-red-700 text-sm underline">Ver listado</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs">Total Alumnos</p>
+                <p class="text-2xl font-bold">{{ stats.total_alumnos }}</p>
+            </div>
+            <i class="fas fa-users text-2xl text-blue-400"></i>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs">Con Deuda</p>
+                <p class="text-2xl font-bold text-red-600">{{ stats.alumnos_vencidos }}</p>
+            </div>
+            <i class="fas fa-exclamation-circle text-2xl text-red-400"></i>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs">Asistencias Hoy</p>
+                <p class="text-2xl font-bold">{{ stats.asistencias_hoy }}</p>
+            </div>
+            <i class="fas fa-user-check text-2xl text-green-400"></i>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-500 text-xs">Morosos</p>
+                <p class="text-2xl font-bold text-orange-600">{{ stats.alumnos_morosos }}</p>
+            </div>
+            <i class="fas fa-clock text-2xl text-orange-400"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Clases de Hoy -->
+<div class="card mb-6">
+    <div class="card-header">
+        <h3 class="font-semibold">📅 Clases de Hoy</h3>
+        <a href="{{ url_for('clases') }}" class="text-blue-500 text-sm">Ver todas →</a>
+    </div>
+    <div class="card-body">
+        {% if stats.clases_hoy %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {% for clase in stats.clases_hoy %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <p class="font-medium">{{ clase.nombre }}</p>
+                        <p class="text-sm text-gray-500">{{ clase.hora }}</p>
+                    </div>
+                    <span class="badge badge-info">Cap: {{ clase.capacidad }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-center py-4">No hay clases programadas para hoy</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Venta Rápida -->
+<div class="card mb-6">
+    <div class="card-header">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-bolt text-yellow-500"></i>
+            <h3 class="font-semibold">Venta Rápida</h3>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('venta_rapida') }}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="form-label">Producto</label>
+                    <select name="producto_id" required class="form-control">
+                        <option value="">Seleccionar</option>
+                        {% for p in stats.productos %}
+                        <option value="{{ p.id }}">{{ p.nombre }} - ${{ p.precio }} (Stock: {{ p.stock }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Cantidad</label>
+                    <input type="number" name="cantidad" value="1" min="1" class="form-control">
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="btn btn-success w-full">
+                        <i class="fas fa-cart-plus"></i> Registrar Venta
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Últimos Alumnos -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="font-semibold">Últimos Alumnos</h3>
+        <a href="{{ url_for('alumnos') }}" class="text-blue-500 text-sm">Ver todos →</a>
+    </div>
+    <div class="card-body">
+        <div class="space-y-2">
+            {% for a in stats.ultimos_alumnos %}
+            <div class="flex items-center justify-between py-2 border-b">
+                <div>
+                    <p class="font-medium">{{ a.nombre }}</p>
+                    <p class="text-xs text-gray-500">{{ a.tipo_clase or 'Sin plan' }} • Inicio: {{ a.fecha_inicio.strftime('%d/%m/%Y') }}</p>
+                </div>
+                <div class="flex gap-2">
+                    {% if a.morosidad %}
+                    <span class="badge badge-danger text-xs">Deuda</span>
+                    {% endif %}
+                    <a href="{{ url_for('editar_alumno', id=a.id) }}" class="text-blue-500">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
