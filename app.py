@@ -104,19 +104,6 @@ def nuevo_alumno():
             flash(f'Error: {str(e)}', 'error')
     return render_template('nuevo_alumno.html')
 
-@app.route('/alumnos/registrar_pago/<int:id>', methods=['POST'])
-@login_required
-def registrar_pago(id):
-    alumno = Alumno.query.get_or_404(id)
-    alumno.ultimo_pago = date.today()
-    alumno.fecha_vencimiento = date.today() + timedelta(days=30)
-    alumno.morosidad = False
-    if alumno.clases_totales > 0:
-        alumno.clases_restantes = alumno.clases_totales
-    db.session.commit()
-    flash('Pago registrado correctamente', 'success')
-    return redirect(url_for('alumnos'))
-
 # ====================== CLASES ======================
 
 @app.route('/clases')
@@ -140,39 +127,13 @@ def nueva_clase():
     flash('Clase creada correctamente', 'success')
     return redirect(url_for('clases'))
 
-@app.route('/clases/asistencia', methods=['POST'])
-@login_required
-def registrar_asistencia():
-    alumno_id = request.form.get('alumno_id')
-    clase_id = request.form.get('clase_id')
-    alumno = Alumno.query.get(alumno_id)
-    
-    ya_asistio = AsistenciaClase.query.filter_by(alumno_id=alumno_id, fecha=date.today()).first()
-    if ya_asistio:
-        flash('El alumno ya registró asistencia hoy', 'warning')
-    else:
-        asistencia = AsistenciaClase(alumno_id=alumno_id, clase_id=clase_id, fecha=date.today())
-        alumno.asistencia += 1
-        if alumno.clases_restantes > 0:
-            alumno.clases_restantes -= 1
-        db.session.add(asistencia)
-        db.session.commit()
-        flash(f'Asistencia grabada para {alumno.nombre}', 'success')
-    return redirect(url_for('clases'))
-
-# ====================== VENTAS Y PRODUCTOS ======================
+# ====================== VENTAS ======================
 
 @app.route('/ventas')
 @login_required
 def ventas():
     historial = Venta.query.order_by(Venta.fecha.desc()).all()
     return render_template('ventas.html', ventas=historial)
-
-@app.route('/productos')
-@login_required
-def productos():
-    lista = Producto.query.all()
-    return render_template('productos.html', productos=lista)
 
 @app.route('/ventas/nueva', methods=['POST'])
 @login_required
@@ -192,6 +153,19 @@ def nueva_venta():
         flash('Venta registrada', 'success')
     return redirect(url_for('index'))
 
+@app.route('/venta_rapida', methods=['POST']) # <-- ESTA ES LA QUE FALTABA AHORA
+@login_required
+def venta_rapida():
+    return nueva_venta()
+
+# ====================== PRODUCTOS ======================
+
+@app.route('/productos')
+@login_required
+def productos():
+    lista = Producto.query.all()
+    return render_template('productos.html', productos=lista)
+
 # ====================== USUARIOS ======================
 
 @app.route('/usuarios')
@@ -208,22 +182,17 @@ def nuevo_usuario():
     if User.query.filter_by(username=username).first():
         flash('El usuario ya existe', 'error')
     else:
-        nuevo = User(
-            username=username,
-            password=generate_password_hash(password),
-            role=request.form.get('role', 'operador')
-        )
+        nuevo = User(username=username, password=generate_password_hash(password), role='operador')
         db.session.add(nuevo)
         db.session.commit()
-        flash(f'Usuario {username} creado', 'success')
+        flash('Usuario creado', 'success')
     return redirect(url_for('usuarios'))
 
-# ====================== LOGIN / LOGOUT ======================
+# ====================== LOGIN ======================
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
+    if current_user.is_authenticated: return redirect(url_for('index'))
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form.get('username')).first()
         if user and check_password_hash(user.password, request.form.get('password')):
@@ -241,10 +210,5 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        try:
-            db.session.execute(text('ALTER TABLE alumnos ADD COLUMN fecha_vencimiento DATE'))
-            db.session.commit()
-        except:
-            db.session.rollback()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
