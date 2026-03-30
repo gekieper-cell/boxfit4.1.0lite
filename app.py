@@ -162,7 +162,7 @@ def registrar_asistencia():
 
 # ====================== VENTAS Y PRODUCTOS ======================
 
-@app.route('/ventas') # <-- ESTA ES LA RUTA QUE FALTABA
+@app.route('/ventas')
 @login_required
 def ventas():
     historial = Venta.query.order_by(Venta.fecha.desc()).all()
@@ -192,6 +192,32 @@ def nueva_venta():
         flash('Venta registrada', 'success')
     return redirect(url_for('index'))
 
+# ====================== USUARIOS ======================
+
+@app.route('/usuarios')
+@login_required
+def usuarios():
+    lista = User.query.all()
+    return render_template('usuarios.html', usuarios=lista)
+
+@app.route('/usuarios/nuevo', methods=['POST'])
+@login_required
+def nuevo_usuario():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    if User.query.filter_by(username=username).first():
+        flash('El usuario ya existe', 'error')
+    else:
+        nuevo = User(
+            username=username,
+            password=generate_password_hash(password),
+            role=request.form.get('role', 'operador')
+        )
+        db.session.add(nuevo)
+        db.session.commit()
+        flash(f'Usuario {username} creado', 'success')
+    return redirect(url_for('usuarios'))
+
 # ====================== LOGIN / LOGOUT ======================
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -215,7 +241,6 @@ def logout():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        # Migración automática de columnas
         try:
             db.session.execute(text('ALTER TABLE alumnos ADD COLUMN fecha_vencimiento DATE'))
             db.session.commit()
