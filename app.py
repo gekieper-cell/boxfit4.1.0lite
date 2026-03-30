@@ -243,14 +243,30 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# ====================== INICIALIZACIÓN ======================
+
 if __name__ == '__main__':
     with app.app_context():
+        # 1. Crear todas las tablas si no existen
         db.create_all()
-        # Migración automática de columnas para Railway
+        
+        # 2. Crear usuario administrador por defecto si la tabla está vacía
+        if not User.query.filter_by(username='admin').first():
+            admin_user = User(
+                username='admin',
+                password=generate_password_hash('admin123'),
+                role='admin'
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+            print("Usuario 'admin' creado exitosamente.")
+
+        # 3. Intentar agregar columna faltante (Migración manual para Railway)
         try:
             db.session.execute(text('ALTER TABLE alumnos ADD COLUMN fecha_vencimiento DATE'))
             db.session.commit()
-        except:
+        except Exception:
             db.session.rollback()
+            
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
