@@ -188,7 +188,9 @@ def registrar_asistencia():
 @login_required
 def ventas():
     historial = Venta.query.order_by(Venta.fecha.desc()).all()
-    return render_template('ventas.html', ventas=historial)
+    # También necesitamos pasar los productos para el modal de "venta rápida"
+    prods = Producto.query.filter(Producto.stock > 0).all()
+    return render_template('ventas.html', ventas=historial, productos=prods)
 
 @app.route('/productos')
 @login_required
@@ -225,8 +227,16 @@ def nueva_venta():
         db.session.add(venta)
         db.session.commit()
         flash('Venta registrada', 'success')
-    return redirect(url_for('index'))
+    else:
+        flash('Producto sin stock o no encontrado', 'error')
+    return redirect(url_for('ventas'))
 
+# ESTA ES LA RUTA QUE FALTABA O DABA ERROR
+@app.route('/venta_rapida', methods=['POST'])
+@login_required
+def venta_rapida():
+    return nueva_venta()
+    
 # ====================== USUARIOS ======================
 
 @app.route('/usuarios')
