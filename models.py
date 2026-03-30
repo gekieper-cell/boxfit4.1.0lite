@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, date
-from sqlalchemy import func
 
 db = SQLAlchemy()
 
@@ -11,6 +10,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='operador')  # admin, operador
+    ventas = db.relationship('Venta', backref='usuario', lazy=True)
 
 class Alumno(db.Model):
     __tablename__ = 'alumnos'
@@ -21,19 +21,19 @@ class Alumno(db.Model):
     contacto_emergencia = db.Column(db.String(100))
     telefono_emergencia = db.Column(db.String(20))
     fecha_inicio = db.Column(db.Date, default=date.today)
-    fecha_vencimiento = db.Column(db.Date) # Columna que faltaba
-    ultimo_pago = db.Column(db.Date) # Columna que faltaba
+    fecha_vencimiento = db.Column(db.Date)
+    ultimo_pago = db.Column(db.Date)
     tipo_clase = db.Column(db.String(50))
-    valor_cuota = db.Column(db.Float, default=15000)
+    valor_cuota = db.Column(db.Float, default=15000.0)
     forma_pago = db.Column(db.String(50))
-    clases_totales = db.Column(db.Integer, default=0)
-    clases_restantes = db.Column(db.Integer, default=0)
-    asistencia = db.Column(db.Integer, default=0)
     morosidad = db.Column(db.Boolean, default=False)
     activo = db.Column(db.Boolean, default=True)
-    notas = db.Column(db.Text)
-    fecha_baja = db.Column(db.Date)
-    motivo_baja = db.Column(db.String(200))
+    asistencia = db.Column(db.Integer, default=0)
+    clases_totales = db.Column(db.Integer, default=0)
+    clases_restantes = db.Column(db.Integer, default=0)
+    
+    # Relación para acceder a las asistencias del alumno
+    asistencias = db.relationship('AsistenciaClase', backref='alumno_rel', lazy=True, cascade="all, delete-orphan")
 
 class Clase(db.Model):
     __tablename__ = 'clases'
@@ -42,7 +42,14 @@ class Clase(db.Model):
     dia = db.Column(db.String(20))
     hora = db.Column(db.String(10))
     capacidad = db.Column(db.Integer, default=20)
-    asistentes = db.relationship('AsistenciaClase', backref='clase', lazy=True)
+    # Cambio el backref a 'clase_rel' para evitar conflictos
+    asistencias = db.relationship('AsistenciaClase', backref='clase_rel', lazy=True, cascade="all, delete-orphan")
+
+    @property
+    def asistentes_hoy(self):
+        """Calcula cuántos alumnos asistieron a esta clase el día de hoy"""
+        # Filtramos las asistencias de esta clase que coincidan con la fecha actual
+        return len([a for a in self.asistencias if a.fecha == date.today()])
 
 class AsistenciaClase(db.Model):
     __tablename__ = 'asistencia_clases'
@@ -50,7 +57,6 @@ class AsistenciaClase(db.Model):
     alumno_id = db.Column(db.Integer, db.ForeignKey('alumnos.id'), nullable=False)
     clase_id = db.Column(db.Integer, db.ForeignKey('clases.id'), nullable=False)
     fecha = db.Column(db.Date, default=date.today)
-    alumno = db.relationship('Alumno', backref='asistencias')
 
 class Producto(db.Model):
     __tablename__ = 'productos'
@@ -58,13 +64,14 @@ class Producto(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     precio = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
+    ventas = db.relationship('Venta', backref='producto_rel', lazy=True)
 
 class Venta(db.Model):
     __tablename__ = 'ventas'
     id = db.Column(db.Integer, primary_key=True)
-    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'), nullable=False)
-    producto_nombre = db.Column(db.String(100))
-    cantidad = db.Column(db.Integer, default=1)
+    producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'))
+    producto_nombre = db.Column(db.String(100)) 
     monto = db.Column(db.Float, nullable=False)
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
+    cantidad = db.Column(db.Integer, default=1)
+    fecha = db.Column(db.DateTime, default=datetime.now)
     usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'))
