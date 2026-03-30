@@ -4,13 +4,14 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta
 from datetime import datetime, date, timedelta
-from sqlalchemy import func, or_, text
+from sqlalchemy import func, or_
 
 app = Flask(__name__)
 
-# Configuración de Seguridad y DB
+# Configuración de Seguridad y Base de Datos
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'boxfit_secret_key_2026')
 
+# Configuración para Railway (PostgreSQL) o SQLite local
 db_url = os.environ.get('DATABASE_URL')
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -20,12 +21,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
-# ====================== INICIALIZACIÓN (PARA RAILWAY) ======================
+# ====================== INICIALIZACIÓN DE BASE DE DATOS ======================
 with app.app_context():
-    # 1. Crear tablas si no existen
     db.create_all()
-    
-    # 2. Crear admin por defecto si no existe
+    # Crear usuario admin por defecto si la tabla está vacía
     if not User.query.filter_by(username='admin').first():
         admin_user = User(
             username='admin',
@@ -34,13 +33,6 @@ with app.app_context():
         )
         db.session.add(admin_user)
         db.session.commit()
-    
-    # 3. Migración manual de columnas
-    try:
-        db.session.execute(text('ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE'))
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -49,7 +41,7 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ====================== DASHBOARD ======================
+# ====================== RUTAS PRINCIPALES (DASHBOARD) ======================
 
 @app.route('/')
 @login_required
@@ -66,8 +58,8 @@ def index():
     dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     clases_hoy = Clase.query.filter_by(dia=dias_semana[hoy.weekday()]).all()
     
-    ultimos_alumnos = Alumno.query.order_by(Alumno.id.desc()).limit(5).all()
-    productos = Producto.query.filter(Producto.stock > 0).limit(10).all()
+    ultimos_alumnos = Alumno.query.order_by(Alumno.id.desc()).limit(10).all()
+    productos = Producto.query.filter(Producto.stock > 0).all()
     
     stats = {
         'total_alumnos': total_alumnos,
@@ -81,7 +73,7 @@ def index():
     }
     return render_template('dashboard.html', stats=stats, now=datetime.now())
 
-# ====================== ALUMNOS ======================
+# ====================== GESTIÓN DE ALUMNOS ======================
 
 @app.route('/alumnos')
 @login_required
@@ -102,8 +94,8 @@ def alumnos():
 def nuevo_alumno():
     if request.method == 'POST':
         try:
-            f_inicio = request.form.get('fecha_inicio')
-            fecha_inicio = datetime.strptime(f_inicio, '%Y-%m-%d').date() if f_inicio else date.today()
+            f_inicio_raw = request.form.get('fecha_inicio')
+            fecha_inicio = datetime.strptime(f_inicio_raw, '%Y-%m-%d').date() if f_inicio_raw else date.today()
             
             nuevo = Alumno(
                 nombre=request.form['nombre'].upper(),
@@ -113,18 +105,35 @@ def nuevo_alumno():
                 fecha_vencimiento=fecha_inicio + timedelta(days=30),
                 tipo_clase=request.form.get('tipo_clase'),
                 valor_cuota=float(request.form.get('valor_cuota', 15000)),
-                clases_totales=int(request.form.get('clases_totales', 0)),
-                clases_restantes=int(request.form.get('clases_totales', 0)),
                 activo=True
             )
             db.session.add(nuevo)
             db.session.commit()
-            flash(f'Alumno {nuevo.nombre} registrado', 'success')
+            flash(f'Alumno {nuevo.nombre} registrado con éxito', 'success')
             return redirect(url_for('alumnos'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Error: {str(e)}', 'error')
+            flash(f'Error al registrar alumno: {str(e)}', 'error')
     return render_template('nuevo_alumno.html')
+
+@app.route('/alumnos/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_alumno(id):
+    alumno = Alumno.query.get_or_404(id)
+    if request.method == 'POST':
+        try:
+            alumno.nombre = request.form['nombre'].upper()
+            alumno.dni = request.form['dni']
+            alumno.telefono = request.form.get('telefono')
+            alumno.tipo_clase = request.form.get('tipo_clase')
+            alumno.valor_cuota = float(request.form.get('valor_cuota', 0))
+            db.session.commit()
+            flash('Datos del alumno actualizados', 'success')
+            return redirect(url_for('alumnos'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al editar: {str(e)}', 'error')
+    return render_template('editar_alumno.html', alumno=alumno)
 
 @app.route('/alumnos/registrar_pago/<int:id>', methods=['POST'])
 @login_required
@@ -133,10 +142,17 @@ def registrar_pago(id):
     alumno.ultimo_pago = date.today()
     alumno.fecha_vencimiento = date.today() + timedelta(days=30)
     alumno.morosidad = False
-    if alumno.clases_totales > 0:
-        alumno.clases_restantes = alumno.clases_totales
     db.session.commit()
-    flash('Pago registrado correctamente', 'success')
+    flash(f'Pago registrado para {alumno.nombre}', 'success')
+    return redirect(url_for('alumnos'))
+
+@app.route('/alumnos/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_alumno(id):
+    alumno = Alumno.query.get_or_404(id)
+    alumno.activo = False
+    db.session.commit()
+    flash('Alumno dado de baja del sistema', 'info')
     return redirect(url_for('alumnos'))
 
 # ====================== CLASES Y ASISTENCIA ======================
@@ -175,11 +191,9 @@ def registrar_asistencia():
     else:
         asistencia = AsistenciaClase(alumno_id=alumno_id, clase_id=clase_id, fecha=date.today())
         alumno.asistencia += 1
-        if alumno.clases_restantes > 0:
-            alumno.clases_restantes -= 1
         db.session.add(asistencia)
         db.session.commit()
-        flash(f'Asistencia grabada para {alumno.nombre}', 'success')
+        flash(f'Asistencia confirmada para {alumno.nombre}', 'success')
     return redirect(url_for('clases'))
 
 # ====================== VENTAS Y PRODUCTOS ======================
@@ -188,7 +202,6 @@ def registrar_asistencia():
 @login_required
 def ventas():
     historial = Venta.query.order_by(Venta.fecha.desc()).all()
-    # También necesitamos pasar los productos para el modal de "venta rápida"
     prods = Producto.query.filter(Producto.stock > 0).all()
     return render_template('ventas.html', ventas=historial, productos=prods)
 
@@ -201,19 +214,19 @@ def productos():
 @app.route('/productos/nuevo', methods=['POST'])
 @login_required
 def nuevo_producto():
-    nombre = request.form.get('nombre')
-    precio = float(request.form.get('precio', 0))
-    stock = int(request.form.get('stock', 0))
-    
-    nuevo = Producto(nombre=nombre, precio=precio, stock=stock)
+    nuevo = Producto(
+        nombre=request.form.get('nombre'),
+        precio=float(request.form.get('precio', 0)),
+        stock=int(request.form.get('stock', 0))
+    )
     db.session.add(nuevo)
     db.session.commit()
-    flash(f'Producto {nombre} agregado', 'success')
-    return redirect(url_for('productos'))
+    flash('Producto agregado al inventario', 'success')
+    return redirect(url_for('ventas'))
 
-@app.route('/ventas/nueva', methods=['POST'])
+@app.route('/venta_rapida', methods=['POST'])
 @login_required
-def nueva_venta():
+def venta_rapida():
     prod_id = request.form.get('producto_id')
     prod = Producto.query.get(prod_id)
     if prod and prod.stock > 0:
@@ -226,22 +239,19 @@ def nueva_venta():
         prod.stock -= 1
         db.session.add(venta)
         db.session.commit()
-        flash('Venta registrada', 'success')
+        flash('Venta registrada con éxito', 'success')
     else:
-        flash('Producto sin stock o no encontrado', 'error')
-    return redirect(url_for('ventas'))
+        flash('Error: No hay stock disponible', 'error')
+    return redirect(request.referrer or url_for('index'))
 
-# ESTA ES LA RUTA QUE FALTABA O DABA ERROR
-@app.route('/venta_rapida', methods=['POST'])
-@login_required
-def venta_rapida():
-    return nueva_venta()
-    
-# ====================== USUARIOS ======================
+# ====================== GESTIÓN DE USUARIOS ======================
 
 @app.route('/usuarios')
 @login_required
 def usuarios():
+    if current_user.role != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('index'))
     lista = User.query.all()
     return render_template('usuarios.html', usuarios=lista)
 
@@ -249,13 +259,12 @@ def usuarios():
 @login_required
 def nuevo_usuario():
     username = request.form.get('username')
-    password = request.form.get('password')
     if User.query.filter_by(username=username).first():
-        flash('El usuario ya existe', 'error')
+        flash('El nombre de usuario ya existe', 'error')
     else:
         nuevo = User(
             username=username,
-            password=generate_password_hash(password),
+            password=generate_password_hash(request.form.get('password')),
             role=request.form.get('role', 'operador')
         )
         db.session.add(nuevo)
@@ -284,7 +293,7 @@ def eliminar_usuario(id):
         flash('Usuario eliminado', 'success')
     return redirect(url_for('usuarios'))
 
-# ====================== LOGIN / LOGOUT ======================
+# ====================== SISTEMA DE LOGIN ======================
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -305,5 +314,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
