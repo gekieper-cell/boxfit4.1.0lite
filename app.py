@@ -20,6 +20,28 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+# ====================== INICIALIZACIÓN (PARA RAILWAY) ======================
+with app.app_context():
+    # 1. Crear tablas si no existen
+    db.create_all()
+    
+    # 2. Crear admin por defecto si no existe
+    if not User.query.filter_by(username='admin').first():
+        admin_user = User(
+            username='admin',
+            password=generate_password_hash('admin123'),
+            role='admin'
+        )
+        db.session.add(admin_user)
+        db.session.commit()
+    
+    # 3. Migración manual de columnas
+    try:
+        db.session.execute(text('ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_vencimiento DATE'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -174,6 +196,19 @@ def productos():
     lista = Producto.query.all()
     return render_template('productos.html', productos=lista)
 
+@app.route('/productos/nuevo', methods=['POST'])
+@login_required
+def nuevo_producto():
+    nombre = request.form.get('nombre')
+    precio = float(request.form.get('precio', 0))
+    stock = int(request.form.get('stock', 0))
+    
+    nuevo = Producto(nombre=nombre, precio=precio, stock=stock)
+    db.session.add(nuevo)
+    db.session.commit()
+    flash(f'Producto {nombre} agregado', 'success')
+    return redirect(url_for('productos'))
+
 @app.route('/ventas/nueva', methods=['POST'])
 @login_required
 def nueva_venta():
@@ -191,11 +226,6 @@ def nueva_venta():
         db.session.commit()
         flash('Venta registrada', 'success')
     return redirect(url_for('index'))
-
-@app.route('/venta_rapida', methods=['POST'])
-@login_required
-def venta_rapida():
-    return nueva_venta()
 
 # ====================== USUARIOS ======================
 
@@ -223,6 +253,27 @@ def nuevo_usuario():
         flash(f'Usuario {username} creado', 'success')
     return redirect(url_for('usuarios'))
 
+@app.route('/usuarios/reset/<int:id>', methods=['POST'])
+@login_required
+def reset_password(id):
+    user = User.query.get_or_404(id)
+    user.password = generate_password_hash('123456')
+    db.session.commit()
+    flash(f'Contraseña de {user.username} reseteada a: 123456', 'info')
+    return redirect(url_for('usuarios'))
+
+@app.route('/usuarios/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_usuario(id):
+    if current_user.id == id:
+        flash('No puedes eliminarte a ti mismo', 'error')
+    else:
+        user = User.query.get_or_404(id)
+        db.session.delete(user)
+        db.session.commit()
+        flash('Usuario eliminado', 'success')
+    return redirect(url_for('usuarios'))
+
 # ====================== LOGIN / LOGOUT ======================
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -243,30 +294,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# ====================== INICIALIZACIÓN ======================
-
 if __name__ == '__main__':
-    with app.app_context():
-        # 1. Crear todas las tablas si no existen
-        db.create_all()
-        
-        # 2. Crear usuario administrador por defecto si la tabla está vacía
-        if not User.query.filter_by(username='admin').first():
-            admin_user = User(
-                username='admin',
-                password=generate_password_hash('admin123'),
-                role='admin'
-            )
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Usuario 'admin' creado exitosamente.")
-
-        # 3. Intentar agregar columna faltante (Migración manual para Railway)
-        try:
-            db.session.execute(text('ALTER TABLE alumnos ADD COLUMN fecha_vencimiento DATE'))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
