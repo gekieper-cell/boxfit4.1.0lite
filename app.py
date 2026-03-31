@@ -47,18 +47,18 @@ def load_user(user_id):
 @login_required
 def index():
     hoy = date.today()
-    total_alumnos = Alumno.query.filter_by(activo=True).count()
-    alumnos_morosos = Alumno.query.filter_by(morosidad=True, activo=True).count()
+    total_alumnos = Alumno.query.filter_by(activo=True, estado='activo').count()
+    alumnos_morosos = Alumno.query.filter_by(morosidad=True, activo=True, estado='activo').count()
     
     fecha_alerta = hoy + timedelta(days=7)
-    alumnos_vencidos = Alumno.query.filter(Alumno.activo == True, Alumno.fecha_vencimiento <= hoy).count()
-    alumnos_alerta = Alumno.query.filter(Alumno.activo == True, Alumno.fecha_vencimiento > hoy, Alumno.fecha_vencimiento <= fecha_alerta).count()
+    alumnos_vencidos = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento <= hoy).count()
+    alumnos_alerta = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento > hoy, Alumno.fecha_vencimiento <= fecha_alerta).count()
     
     asistencias_hoy = AsistenciaClase.query.filter_by(fecha=hoy).count()
     dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     clases_hoy = Clase.query.filter_by(dia=dias_semana[hoy.weekday()]).all()
     
-    ultimos_alumnos = Alumno.query.order_by(Alumno.id.desc()).limit(10).all()
+    ultimos_alumnos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.id.desc()).limit(10).all()
     productos = Producto.query.filter(Producto.stock > 0).all()
     
     stats = {
@@ -80,6 +80,7 @@ def index():
 def alumnos():
     filtro = request.args.get('filtro')
     query = Alumno.query.filter_by(activo=True)
+    
     if filtro == 'deudores':
         query = query.filter_by(morosidad=True)
     elif filtro == 'vencimientos':
@@ -87,7 +88,7 @@ def alumnos():
         query = query.filter(Alumno.fecha_vencimiento <= proxima_semana)
     
     alumnos_lista = query.order_by(Alumno.nombre).all()
-    return render_template('alumnos.html', alumnos=alumnos_lista)
+    return render_template('alumnos.html', alumnos=alumnos_lista, filtro_actual=filtro)
 
 @app.route('/alumnos/nuevo', methods=['GET', 'POST'])
 @login_required
@@ -105,7 +106,8 @@ def nuevo_alumno():
                 fecha_vencimiento=fecha_inicio + timedelta(days=30),
                 tipo_clase=request.form.get('tipo_clase'),
                 valor_cuota=float(request.form.get('valor_cuota', 15000)),
-                activo=True
+                activo=True,
+                estado='activo'
             )
             db.session.add(nuevo)
             db.session.commit()
@@ -146,11 +148,44 @@ def registrar_pago(id):
     flash(f'Pago registrado para {alumno.nombre}', 'success')
     return redirect(url_for('alumnos'))
 
+@app.route('/alumnos/pausar/<int:id>', methods=['POST'])
+@login_required
+def pausar_alumno(id):
+    alumno = Alumno.query.get_or_404(id)
+    if not alumno.activo:
+        flash('No se puede pausar un alumno dado de baja', 'error')
+        return redirect(url_for('alumnos'))
+    
+    motivo = request.form.get('motivo_pausa', '')
+    motivo_otro = request.form.get('motivo_otro', '')
+    motivo_final = motivo_otro if motivo == 'Otro' and motivo_otro else motivo
+    
+    if not motivo_final:
+        motivo_final = 'Sin especificar'
+    
+    alumno.estado = 'pausado'
+    alumno.fecha_pausa = date.today()
+    alumno.motivo_pausa = motivo_final
+    db.session.commit()
+    flash(f'Alumno {alumno.nombre} pausado. Motivo: {motivo_final}', 'warning')
+    return redirect(url_for('alumnos'))
+
+@app.route('/alumnos/reactivar/<int:id>', methods=['POST'])
+@login_required
+def reactivar_alumno(id):
+    alumno = Alumno.query.get_or_404(id)
+    alumno.estado = 'activo'
+    alumno.fecha_pausa = None
+    db.session.commit()
+    flash(f'Alumno {alumno.nombre} reactivado', 'success')
+    return redirect(url_for('alumnos'))
+
 @app.route('/alumnos/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_alumno(id):
     alumno = Alumno.query.get_or_404(id)
     alumno.activo = False
+    alumno.estado = 'inactivo'
     db.session.commit()
     flash('Alumno dado de baja del sistema', 'info')
     return redirect(url_for('alumnos'))
@@ -161,7 +196,7 @@ def eliminar_alumno(id):
 @login_required
 def clases():
     todas_clases = Clase.query.all()
-    alumnos_activos = Alumno.query.filter_by(activo=True).order_by(Alumno.nombre).all()
+    alumnos_activos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.nombre).all()
     return render_template('clases.html', clases=todas_clases, alumnos_activos=alumnos_activos)
 
 @app.route('/clases/nueva', methods=['POST'])
@@ -198,6 +233,10 @@ def registrar_asistencia():
     alumno_id = request.form.get('alumno_id')
     clase_id = request.form.get('clase_id')
     alumno = Alumno.query.get(alumno_id)
+    
+    if alumno.estado == 'pausado':
+        flash(f'El alumno {alumno.nombre} está pausado. No puede registrar asistencia.', 'error')
+        return redirect(url_for('clases'))
     
     ya_asistio = AsistenciaClase.query.filter_by(alumno_id=alumno_id, fecha=date.today()).first()
     if ya_asistio:

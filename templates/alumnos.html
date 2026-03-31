@@ -2,129 +2,101 @@
 {% block title %}Alumnos - BoxFit{% endblock %}
 
 {% block content %}
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-    <div>
-        <h2 class="text-3xl font-bold text-white tracking-tight" style="font-family: 'Bebas Neue', sans-serif;">LISTADO DE ALUMNOS</h2>
-        
-        <div id="filter-indicator" class="mt-2 flex items-center gap-2">
-            {% if request.args.get('filtro') == 'deudores' %}
-                <span class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-red-500/30 animate-pulse">
-                    <i class="fas fa-filter mr-1"></i> FILTRADO POR: DEUDORES
-                </span>
-                <a href="{{ url_for('alumnos') }}" class="text-gray-500 hover:text-white text-xs underline transition-colors">Ver todos</a>
-            {% elif request.args.get('filtro') == 'vencimientos' %}
-                <span class="bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-yellow-500/30">
-                    <i class="fas fa-filter mr-1"></i> FILTRADO POR: PRÓXIMOS VENCIMIENTOS
-                </span>
-                <a href="{{ url_for('alumnos') }}" class="text-gray-500 hover:text-white text-xs underline transition-colors">Ver todos</a>
-            {% else %}
-                <p class="text-gray-500 text-sm italic">Gestión general de la base de datos</p>
-            {% endif %}
+<div class="mb-5">
+    <div class="flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold">Alumnos</h2>
+            <p class="text-gray-500 text-sm">Gestión de alumnos del gimnasio</p>
         </div>
+        <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nuevo Alumno
+        </a>
     </div>
-    
-    <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary px-6 py-3 shadow-lg shadow-red-900/20 flex items-center gap-2">
-        <i class="fas fa-user-plus"></i>
-        <span class="font-bold uppercase tracking-widest text-xs">Registrar Nuevo</span>
-    </a>
 </div>
 
-<div class="glass-card overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-white/5 text-gray-500 text-[10px] uppercase tracking-[2px] font-bold border-b border-white/5">
+<!-- Filtros -->
+<div class="flex gap-2 mb-4">
+    <a href="{{ url_for('alumnos') }}" class="btn btn-outline btn-sm {% if not filtro_actual %}bg-blue-500 text-white{% endif %}">Todos</a>
+    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'deudores' %}bg-red-500 text-white{% endif %}">Deudores</a>
+    <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'vencimientos' %}bg-yellow-500 text-white{% endif %}">Próximos vencimientos</a>
+</div>
+
+<div class="card">
+    <div class="overflow-x-auto p-4">
+        <table class="w-full">
+            <thead>
                 <tr>
-                    <th class="px-6 py-4">Alumno</th>
-                    <th class="px-6 py-4">DNI / Teléfono</th>
-                    <th class="px-6 py-4">Plan Actual</th>
-                    <th class="px-6 py-4 text-center">Clases</th>
-                    <th class="px-6 py-4">Estado</th>
-                    <th class="px-6 py-4 text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
+                    <th>Nombre</th>
+                    <th>DNI / Teléfono</th>
+                    <th>Plan</th>
+                    <th>Clases</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </thead>
+            <tbody>
                 {% for a in alumnos %}
-                <tr class="hover:bg-white/5 transition-all group">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-9 h-9 bg-gradient-to-br from-red-500 to-red-800 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-inner">
-                                {{ a.nombre[:2] | upper }}
-                            </div>
-                            <span class="font-bold text-white group-hover:text-red-400 transition-colors">{{ a.nombre }}</span>
-                        </div>
-                    </td>
-
-                    <td class="px-6 py-4 text-sm">
-                        <div class="text-gray-300 font-medium">{{ a.dni }}</div>
-                        <div class="text-gray-500 text-xs">
-                            {% if a.telefono %}
-                                <i class="fab fa-whatsapp text-green-500/50 mr-1"></i> {{ a.telefono }}
-                            {% else %}
-                                <span class="italic text-gray-600">Sin teléfono</span>
-                            {% endif %}
-                        </div>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-white font-medium">{{ a.tipo_clase or 'General' }}</div>
-                        <div class="text-xs text-green-500 font-bold">${{ "{:,.0f}".format(a.valor_cuota) }}</div>
-                    </td>
-
-                    <td class="px-6 py-4 text-center">
-                        <span class="bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs font-mono text-gray-300">
-                            {{ a.clases_restantes }} <span class="text-gray-600">/</span> {{ a.clases_totales }}
-                        </span>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        {% if not a.activo %}
-                            <span class="bg-gray-500/10 text-gray-500 px-2 py-1 rounded text-[9px] font-black uppercase border border-gray-500/20">Baja</span>
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="py-3 font-medium">{{ a.nombre }}<br><span class="text-xs text-gray-500">{{ a.telefono or 'Sin teléfono' }}</span></td>
+                    <td class="py-3">{{ a.dni }}<br><span class="text-xs text-gray-500">Vence: {{ a.fecha_vencimiento.strftime('%d/%m/%Y') if a.fecha_vencimiento else '-' }}</span></td>
+                    <td class="py-3">{{ a.tipo_clase or 'Mensual' }}<br><span class="text-xs text-gray-500">${{ "%.0f"|format(a.valor_cuota) }}</span></td>
+                    <td class="py-3 text-center">{{ a.asistencia }}<br><span class="text-xs text-gray-500">asistencias</span></td>
+                    <td class="py-3">
+                        {% if a.estado == 'pausado' %}
+                            <span class="badge badge-warning bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                                <i class="fas fa-pause-circle"></i> Pausado
+                            </span>
+                        {% elif not a.activo %}
+                            <span class="badge badge-danger bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">Inactivo</span>
                         {% elif a.morosidad %}
-                            <span class="bg-red-500/10 text-red-500 px-2 py-1 rounded text-[9px] font-black uppercase border border-red-500/20 animate-pulse">Deuda</span>
+                            <span class="badge badge-danger bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">Deuda</span>
                         {% else %}
-                            <span class="bg-green-500/10 text-green-400 px-2 py-1 rounded text-[9px] font-black uppercase border border-green-500/20">Al día</span>
+                            <span class="badge badge-success bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
+                        {% endif %}
+                        {% if a.fecha_pausa %}
+                        <div class="text-xs text-gray-400 mt-1">Pausado desde: {{ a.fecha_pausa.strftime('%d/%m/%Y') }}</div>
                         {% endif %}
                     </td>
-
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex justify-end gap-2">
-                            <button onclick="document.getElementById('modalPago{{ a.id }}').classList.remove('hidden')" 
-                                    class="w-9 h-9 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all flex items-center justify-center border border-green-500/20" 
-                                    title="Cobrar">
-                                <i class="fas fa-dollar-sign"></i>
+                    <td class="py-3">
+                        <div class="flex gap-2">
+                            <a href="{{ url_for('editar_alumno', id=a.id) }}" class="text-blue-500 hover:text-blue-700" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            
+                            {% if a.estado == 'pausado' %}
+                            <form action="{{ url_for('reactivar_alumno', id=a.id) }}" method="POST" class="inline">
+                                <button type="submit" class="text-green-500 hover:text-green-700" title="Reactivar">
+                                    <i class="fas fa-play-circle"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <button onclick="abrirModalPausa({{ a.id }}, '{{ a.nombre }}')" class="text-yellow-500 hover:text-yellow-700" title="Pausar">
+                                <i class="fas fa-pause-circle"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <button onclick="document.getElementById('modalPago{{ a.id }}').classList.remove('hidden')" class="text-green-500 hover:text-green-700" title="Registrar pago">
+                                <i class="fas fa-money-bill"></i>
                             </button>
                             
-                            <a href="{{ url_for('editar_alumno', id=a.id) }}" 
-                               class="w-9 h-9 bg-white/5 text-gray-400 rounded-xl hover:bg-white hover:text-black transition-all flex items-center justify-center border border-white/10" 
-                               title="Editar Perfil">
-                                <i class="fas fa-pen text-xs"></i>
-                            </a>
-
-                            <a href="https://wa.me/{{ a.telefono }}" target="_blank"
-                               class="w-9 h-9 bg-blue-500/10 text-blue-400 rounded-xl hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center border border-blue-500/20" 
-                               title="Mensaje">
-                                <i class="fab fa-whatsapp"></i>
-                            </a>
+                            <form action="{{ url_for('eliminar_alumno', id=a.id) }}" method="POST" class="inline" onsubmit="return confirm('¿Dar de baja este alumno?')">
+                                <button type="submit" class="text-red-500 hover:text-red-700" title="Dar de baja">
+                                    <i class="fas fa-user-slash"></i>
+                                </button>
+                            </form>
                         </div>
-
-                        <div id="modalPago{{ a.id }}" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[100] backdrop-blur-sm p-4">
-                            <div class="glass-card w-full max-w-sm border-t-4 border-green-500">
-                                <div class="p-6 border-b border-white/5 flex justify-between items-center">
-                                    <h3 class="text-xl font-bold uppercase tracking-tight text-white">Registrar Cobro</h3>
-                                    <button onclick="document.getElementById('modalPago{{ a.id }}').classList.add('hidden')" class="text-gray-500 hover:text-white text-2xl">&times;</button>
+                        
+                        <!-- Modal Pago -->
+                        <div id="modalPago{{ a.id }}" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+                            <div class="card w-80">
+                                <div class="card-header flex justify-between">
+                                    <h3>Registrar Pago</h3>
+                                    <button onclick="document.getElementById('modalPago{{ a.id }}').classList.add('hidden')">&times;</button>
                                 </div>
-                                <div class="p-6">
-                                    <p class="text-gray-400 text-sm mb-4">Alumno: <strong class="text-white">{{ a.nombre }}</strong></p>
-                                    <form method="POST" action="{{ url_for('registrar_pago', id=a.id) }}" class="space-y-4">
-                                        <div>
-                                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Monto a cobrar ($)</label>
-                                            <input type="number" name="monto" value="{{ a.valor_cuota }}" step="0.01" class="form-control w-full bg-[#0a0a0a] border-white/10 text-white text-lg font-bold">
-                                        </div>
-                                        <div class="flex gap-3 pt-2">
-                                            <button type="submit" class="btn btn-success flex-1 py-3 font-bold uppercase text-xs tracking-widest">
-                                                Confirmar Pago
-                                            </button>
-                                        </div>
+                                <div class="card-body">
+                                    <form method="POST" action="{{ url_for('registrar_pago', id=a.id) }}">
+                                        <p class="mb-3">Alumno: <strong>{{ a.nombre }}</strong></p>
+                                        <p class="mb-3">Monto: <strong>${{ "%.0f"|format(a.valor_cuota) }}</strong></p>
+                                        <button type="submit" class="btn btn-success w-full">Registrar Pago</button>
                                     </form>
                                 </div>
                             </div>
@@ -133,7 +105,49 @@
                 </tr>
                 {% endfor %}
             </tbody>
-        </table>
+         </table>
     </div>
 </div>
+
+<!-- Modal Pausar Alumno -->
+<div id="modalPausa" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="card w-full max-w-md">
+        <div class="card-header">
+            <h3 class="font-semibold">Pausar Alumno</h3>
+            <button onclick="document.getElementById('modalPausa').classList.add('hidden')">&times;</button>
+        </div>
+        <div class="card-body">
+            <form id="formPausa" method="POST">
+                <p class="mb-3 text-sm" id="pausaAlumnoNombre"></p>
+                <div class="form-group">
+                    <label class="form-label">Motivo de la pausa</label>
+                    <select name="motivo_pausa" class="form-control" required>
+                        <option value="">Seleccionar motivo</option>
+                        <option value="Vacaciones">Vacaciones</option>
+                        <option value="Lesión">Lesión / Recuperación</option>
+                        <option value="Viaje">Viaje / Trabajo</option>
+                        <option value="Problemas económicos">Problemas económicos</option>
+                        <option value="Otro">Otro (especificar)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Especificar (si es Otro)</label>
+                    <input type="text" name="motivo_otro" class="form-control" placeholder="Escriba el motivo">
+                </div>
+                <div class="flex gap-3 mt-4">
+                    <button type="submit" class="btn btn-warning flex-1">Pausar Alumno</button>
+                    <button type="button" onclick="document.getElementById('modalPausa').classList.add('hidden')" class="btn btn-outline flex-1">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function abrirModalPausa(id, nombre) {
+    document.getElementById('pausaAlumnoNombre').innerHTML = `¿Pausar a <strong>${nombre}</strong>?`;
+    document.getElementById('formPausa').action = `/alumnos/pausar/${id}`;
+    document.getElementById('modalPausa').classList.remove('hidden');
+}
+</script>
 {% endblock %}

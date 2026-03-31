@@ -28,6 +28,9 @@ class Alumno(db.Model):
     forma_pago = db.Column(db.String(50))
     morosidad = db.Column(db.Boolean, default=False)
     activo = db.Column(db.Boolean, default=True)
+    estado = db.Column(db.String(20), default='activo')  # activo, pausado, inactivo
+    fecha_pausa = db.Column(db.Date)
+    motivo_pausa = db.Column(db.String(200))
     asistencia = db.Column(db.Integer, default=0)
     clases_totales = db.Column(db.Integer, default=0)
     clases_restantes = db.Column(db.Integer, default=0)
