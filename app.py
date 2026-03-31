@@ -162,7 +162,7 @@ def eliminar_alumno(id):
 def clases():
     todas_clases = Clase.query.all()
     alumnos_activos = Alumno.query.filter_by(activo=True).order_by(Alumno.nombre).all()
-    return render_template('clases.html', clases=todas_clases, alumnos=alumnos_activos)
+    return render_template('clases.html', clases=todas_clases, alumnos_activos=alumnos_activos)
 
 @app.route('/clases/nueva', methods=['POST'])
 @login_required
@@ -176,6 +176,20 @@ def nueva_clase():
     db.session.add(nueva)
     db.session.commit()
     flash('Clase creada correctamente', 'success')
+    return redirect(url_for('clases'))
+
+@app.route('/clases/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_clase(id):
+    if current_user.role != 'admin':
+        flash('Solo administradores pueden eliminar clases', 'error')
+        return redirect(url_for('clases'))
+    
+    clase = Clase.query.get_or_404(id)
+    nombre = clase.nombre
+    db.session.delete(clase)
+    db.session.commit()
+    flash(f'Clase "{nombre}" eliminada correctamente', 'success')
     return redirect(url_for('clases'))
 
 @app.route('/asistencia/registrar', methods=['POST'])

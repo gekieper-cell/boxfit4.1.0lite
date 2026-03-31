@@ -9,7 +9,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='operador')  # admin, operador
+    role = db.Column(db.String(20), default='operador')
     ventas = db.relationship('Venta', backref='usuario', lazy=True)
 
 class Alumno(db.Model):
@@ -32,7 +32,6 @@ class Alumno(db.Model):
     clases_totales = db.Column(db.Integer, default=0)
     clases_restantes = db.Column(db.Integer, default=0)
     
-    # Relación para acceder a las asistencias del alumno
     asistencias = db.relationship('AsistenciaClase', backref='alumno_rel', lazy=True, cascade="all, delete-orphan")
 
 class Clase(db.Model):
@@ -42,13 +41,11 @@ class Clase(db.Model):
     dia = db.Column(db.String(20))
     hora = db.Column(db.String(10))
     capacidad = db.Column(db.Integer, default=20)
-    # Cambio el backref a 'clase_rel' para evitar conflictos
     asistencias = db.relationship('AsistenciaClase', backref='clase_rel', lazy=True, cascade="all, delete-orphan")
 
     @property
     def asistentes_hoy(self):
         """Calcula cuántos alumnos asistieron a esta clase el día de hoy"""
-        # Filtramos las asistencias de esta clase que coincidan con la fecha actual
         return len([a for a in self.asistencias if a.fecha == date.today()])
 
 class AsistenciaClase(db.Model):
