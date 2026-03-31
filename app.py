@@ -1,10 +1,11 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -33,6 +34,7 @@ with app.app_context():
         )
         db.session.add(admin_user)
         db.session.commit()
+        print(">>> Usuario admin creado: admin / admin123")
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -86,6 +88,8 @@ def alumnos():
     elif filtro == 'vencimientos':
         proxima_semana = date.today() + timedelta(days=7)
         query = query.filter(Alumno.fecha_vencimiento <= proxima_semana)
+    else:
+        query = query.filter_by(estado='activo')
     
     alumnos_lista = query.order_by(Alumno.nombre).all()
     return render_template('alumnos.html', alumnos=alumnos_lista, filtro_actual=filtro)
@@ -189,6 +193,123 @@ def eliminar_alumno(id):
     db.session.commit()
     flash('Alumno dado de baja del sistema', 'info')
     return redirect(url_for('alumnos'))
+
+# ====================== IMPORTACIÓN MASIVA DE ALUMNOS ======================
+
+@app.route('/alumnos/importar', methods=['POST'])
+@login_required
+def importar_alumnos_excel():
+    if current_user.role != 'admin':
+        flash('Solo administradores pueden importar alumnos', 'error')
+        return redirect(url_for('alumnos'))
+    
+    if 'archivo' not in request.files:
+        flash('No se seleccionó ningún archivo', 'error')
+        return redirect(url_for('alumnos'))
+    
+    archivo = request.files['archivo']
+    if archivo.filename == '':
+        flash('No se seleccionó ningún archivo', 'error')
+        return redirect(url_for('alumnos'))
+    
+    if not archivo.filename.endswith(('.xlsx', '.xls')):
+        flash('Formato de archivo no válido. Use .xlsx o .xls', 'error')
+        return redirect(url_for('alumnos'))
+    
+    try:
+        import pandas as pd
+        df = pd.read_excel(archivo)
+        
+        df.columns = df.columns.str.strip().str.lower()
+        
+        columnas_requeridas = ['nombre', 'dni']
+        for col in columnas_requeridas:
+            if col not in df.columns:
+                flash(f'Falta la columna requerida: {col}', 'error')
+                return redirect(url_for('alumnos'))
+        
+        importados = 0
+        errores = []
+        
+        for idx, row in df.iterrows():
+            try:
+                nombre = str(row.get('nombre', '')).strip()
+                dni = str(row.get('dni', '')).strip()
+                
+                if not nombre or not dni:
+                    errores.append(f"Fila {idx+2}: Nombre o DNI vacío")
+                    continue
+                
+                existe = Alumno.query.filter_by(dni=dni).first()
+                if existe:
+                    errores.append(f"Fila {idx+2}: DNI {dni} ya existe como {existe.nombre}")
+                    continue
+                
+                fecha_inicio = date.today()
+                if 'fecha_inicio' in df.columns and pd.notna(row.get('fecha_inicio')):
+                    try:
+                        fecha_inicio = pd.to_datetime(row.get('fecha_inicio')).date()
+                    except:
+                        pass
+                
+                nuevo = Alumno(
+                    nombre=nombre.upper(),
+                    dni=dni,
+                    telefono=str(row.get('telefono', '')) if pd.notna(row.get('telefono')) else '',
+                    fecha_inicio=fecha_inicio,
+                    fecha_vencimiento=fecha_inicio + timedelta(days=30),
+                    tipo_clase=str(row.get('tipo_clase', 'Mensual')) if pd.notna(row.get('tipo_clase')) else 'Mensual',
+                    valor_cuota=float(row.get('valor_cuota', 15000)) if pd.notna(row.get('valor_cuota')) else 15000,
+                    activo=True,
+                    estado='activo'
+                )
+                db.session.add(nuevo)
+                importados += 1
+                
+            except Exception as e:
+                errores.append(f"Fila {idx+2}: {str(e)}")
+        
+        db.session.commit()
+        
+        mensaje = f'✅ Se importaron {importados} alumnos correctamente.'
+        if errores:
+            mensaje += f' ❌ {len(errores)} errores: ' + '; '.join(errores[:5])
+            if len(errores) > 5:
+                mensaje += f' y {len(errores)-5} más...'
+        
+        flash(mensaje, 'success' if importados > 0 else 'warning')
+        
+    except Exception as e:
+        flash(f'Error al procesar el archivo: {str(e)}', 'error')
+    
+    return redirect(url_for('alumnos'))
+
+@app.route('/alumnos/plantilla')
+@login_required
+def descargar_plantilla_alumnos():
+    import pandas as pd
+    from io import BytesIO
+    
+    datos = {
+        'nombre': ['JUAN PEREZ', 'MARIA GARCIA', 'CARLOS LOPEZ'],
+        'dni': ['12345678', '87654321', '11223344'],
+        'telefono': ['5491112345678', '5491123456789', '5491134567890'],
+        'tipo_clase': ['Mensual', '2 clases por semana', 'Libre'],
+        'valor_cuota': [15000, 12000, 20000],
+        'fecha_inicio': ['2024-03-01', '2024-03-15', '2024-04-01']
+    }
+    
+    df = pd.DataFrame(datos)
+    output = BytesIO()
+    df.to_excel(output, index=False, sheet_name='Alumnos')
+    output.seek(0)
+    
+    return send_file(
+        output,
+        download_name='plantilla_alumnos.xlsx',
+        as_attachment=True,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
 
 # ====================== CLASES Y ASISTENCIA ======================
 

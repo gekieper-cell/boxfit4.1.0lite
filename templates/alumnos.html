@@ -5,12 +5,17 @@
 <div class="mb-5">
     <div class="flex justify-between items-center">
         <div>
-            <h2 class="text-xl font-semibold">Alumnos</h2>
+            <h2 class="text-xl font-semibold dark:text-white">Alumnos</h2>
             <p class="text-gray-500 text-sm">Gestión de alumnos del gimnasio</p>
         </div>
-        <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nuevo Alumno
-        </a>
+        <div class="flex gap-2">
+            <button onclick="document.getElementById('modalImportar').classList.remove('hidden')" class="btn btn-outline">
+                <i class="fas fa-file-excel"></i> Importar Excel
+            </button>
+            <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nuevo Alumno
+            </a>
+        </div>
     </div>
 </div>
 
@@ -25,7 +30,7 @@
     <div class="overflow-x-auto p-4">
         <table class="w-full">
             <thead>
-                <tr>
+                发展
                     <th>Nombre</th>
                     <th>DNI / Teléfono</th>
                     <th>Plan</th>
@@ -36,7 +41,7 @@
             <tbody>
                 {% for a in alumnos %}
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="py-3 font-medium">{{ a.nombre }}<br><span class="text-xs text-gray-500">{{ a.telefono or 'Sin teléfono' }}</span></td>
+                    <td class="py-3 font-medium">{{ a.nombre }}<br><span class="text-xs text-gray-500">{{ a.telefono or 'Sin teléfono' }}</span>{% if a.morosidad %}<span class="text-xs text-red-500 ml-2">⚠️ Deuda</span>{% endif %}</td>
                     <td class="py-3">{{ a.dni }}<br><span class="text-xs text-gray-500">Vence: {{ a.fecha_vencimiento.strftime('%d/%m/%Y') if a.fecha_vencimiento else '-' }}</span></td>
                     <td class="py-3">{{ a.tipo_clase or 'Mensual' }}<br><span class="text-xs text-gray-500">${{ "%.0f"|format(a.valor_cuota) }}</span></td>
                     <td class="py-3 text-center">{{ a.asistencia }}<br><span class="text-xs text-gray-500">asistencias</span></td>
@@ -105,7 +110,48 @@
                 </tr>
                 {% endfor %}
             </tbody>
-         </table>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Importar Excel -->
+<div id="modalImportar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="card w-full max-w-md">
+        <div class="card-header">
+            <h3 class="font-semibold">Importar Alumnos desde Excel</h3>
+            <button onclick="document.getElementById('modalImportar').classList.add('hidden')" class="text-gray-500 text-xl">&times;</button>
+        </div>
+        <div class="card-body">
+            <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg mb-4">
+                <p class="text-sm text-blue-700 dark:text-blue-300">
+                    <i class="fas fa-info-circle"></i> El archivo Excel debe tener las siguientes columnas:
+                </p>
+                <p class="text-xs text-blue-600 dark:text-blue-400 mt-1 font-mono">
+                    nombre, dni, telefono, tipo_clase, valor_cuota, fecha_inicio
+                </p>
+            </div>
+            
+            <form action="{{ url_for('importar_alumnos_excel') }}" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label class="form-label">Seleccionar archivo Excel (.xlsx, .xls)</label>
+                    <input type="file" name="archivo" accept=".xlsx,.xls" required class="form-control">
+                </div>
+                <div class="flex gap-3 mt-4">
+                    <button type="submit" class="btn btn-primary flex-1">
+                        <i class="fas fa-upload"></i> Importar
+                    </button>
+                    <button type="button" onclick="document.getElementById('modalImportar').classList.add('hidden')" class="btn btn-outline flex-1">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-4 text-center">
+                <a href="{{ url_for('descargar_plantilla_alumnos') }}" class="text-blue-500 text-sm hover:underline">
+                    <i class="fas fa-download"></i> Descargar plantilla de ejemplo
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
