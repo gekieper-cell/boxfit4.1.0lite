@@ -1,8 +1,7 @@
-flask
-flask_sqlalchemy
-flask_login
+Flask
+flask-sqlalchemy
 psycopg2-binary
-gunicorn
-werkzeug
-pandas
+python-dotenv
 openpyxl
+gunicorn
+pandas

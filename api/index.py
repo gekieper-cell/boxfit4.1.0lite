@@ -1,4 +1,7 @@
+
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -490,3 +493,9 @@ def logout():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+# ===== MANEJADOR PARA VERCEL =====
+application = app
+
+# ===== EJECUCIÓN LOCAL =====
+if __name__ == '__main__':
+    app.run(debug=True)
