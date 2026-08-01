@@ -78,6 +78,7 @@ def index():
 
 # ====================== RUTA DE LOGIN ======================
 @app.route('/login', methods=['GET', 'POST'])
+def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -85,14 +86,23 @@ def index():
         
         if user and check_password_hash(user.password, password):
             login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Usuario o contraseña incorrectos', 'danger')
     
     return render_template('login.html')
 
 # ====================== RUTA DE LOGOUT ======================
+@app.route('/logout')
+@login_required
+def logout():
     logout_user()
     return redirect(url_for('login'))
 
 # ====================== RUTAS DE ALUMNOS ======================
+@app.route('/alumnos')
+@login_required
+def listar_alumnos():
     alumnos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.nombre).all()
     return render_template('alumnos.html', alumnos=alumnos)
 
@@ -100,6 +110,9 @@ def index():
 @login_required
 def nuevo_alumno():
     if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
+        email = request.form.get('email')
         fecha_vencimiento = request.form.get('fecha_vencimiento')
         
         nuevo = Alumno(
@@ -114,9 +127,6 @@ def nuevo_alumno():
         )
         db.session.add(nuevo)
         db.session.commit()
-        nombre = request.form.get('nombre')
-        telefono = request.form.get('telefono')
-        email = request.form.get('email')
         flash('Alumno agregado exitosamente', 'success')
         return redirect(url_for('listar_alumnos'))
     
@@ -213,13 +223,4 @@ application = app
 
 # ====================== EJECUCIÓN LOCAL ======================
 if __name__ == '__main__':
-    app.run(debug=True)@app.route('/alumnos')
-@login_required
-def listar_alumnos():
-@app.route('/logout')
-@login_required
-def logout():
-            return redirect(url_for('index'))
-        else:
-            flash('Usuario o contraseña incorrectos', 'danger')
-
+    app.run(debug=True)
