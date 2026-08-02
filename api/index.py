@@ -10,7 +10,12 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_
 from io import BytesIO
 
-app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, 'templates'),
+    static_folder=os.path.join(BASE_DIR, 'static')
+)
 
 # Configuración de Seguridad y Base de Datos
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'boxfit_secret_key_2026')
@@ -116,16 +121,26 @@ def listar_alumnos():
 def nuevo_alumno():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
         fecha_vencimiento = request.form.get('fecha_vencimiento')
 
         nuevo = Alumno(
+            nombre=nombre,
+            telefono=telefono,
+            fecha_inicio=date.today(),
             fecha_vencimiento=datetime.strptime(fecha_vencimiento, '%Y-%m-%d').date() if fecha_vencimiento else None,
+            activo=True,
+            estado='activo',
+            morosidad=False
         )
         db.session.add(nuevo)
         db.session.commit()
         flash('Alumno agregado exitosamente', 'success')
         return redirect(url_for('listar_alumnos'))
 
+    return render_template('nuevo_alumno.html')
+
+# ====================== RUTA PARA MARCAR ASISTENCIA ======================
 @app.route('/asistencia', methods=['GET', 'POST'])
 @login_required
 def marcar_asistencia():
@@ -216,13 +231,4 @@ application = app
 
 # ====================== EJECUCIÓN LOCAL ======================
 if __name__ == '__main__':
-    app.run(debug=True)    return render_template('nuevo_alumno.html')
-
-# ====================== RUTA PARA MARCAR ASISTENCIA ======================
-            activo=True,
-            estado='activo',
-            morosidad=False
-            nombre=nombre,
-            telefono=telefono,
-            fecha_inicio=date.today(),
-
+    app.run(debug=True)
