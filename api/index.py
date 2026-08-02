@@ -10,12 +10,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_
 from io import BytesIO
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-app = Flask(
-    __name__,
-    template_folder=os.path.join(BASE_DIR, 'templates'),
-    static_folder=os.path.join(BASE_DIR, 'static')
-)
+app = Flask(__name__)
 
 # Configuración de Seguridad y Base de Datos
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'boxfit_secret_key_2026')
