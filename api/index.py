@@ -221,6 +221,25 @@ def nueva_venta():
     productos = Producto.query.filter(Producto.stock > 0).all()
     return render_template('nueva_venta.html', productos=productos)
 
+# ====================== RUTA DE CLASES ======================
+@app.route('/clases')
+@login_required
+def clases():
+    dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+    todas_clases = Clase.query.order_by(Clase.dia, Clase.hora).all()
+    return render_template('clases.html', clases=todas_clases, dias_semana=dias_semana)
+
+# ====================== RUTA DE USUARIOS (SOLO ADMIN) ======================
+@app.route('/usuarios')
+@login_required
+def usuarios():
+    if current_user.role != 'admin':
+        flash('No tenés permisos para acceder a esta sección', 'danger')
+        return redirect(url_for('index'))
+
+    todos_usuarios = User.query.order_by(User.username).all()
+    return render_template('usuarios.html', usuarios=todos_usuarios)
+
 # ====================== MANEJADOR PARA VERCEL ======================
 application = app
 
