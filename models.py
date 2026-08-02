@@ -31,10 +31,13 @@ class Alumno(db.Model):
     estado = db.Column(db.String(20), default='activo')  # activo, pausado, inactivo
     fecha_pausa = db.Column(db.Date)
     motivo_pausa = db.Column(db.String(200))
+    fecha_baja = db.Column(db.Date)
+    motivo_baja = db.Column(db.String(200))
+    notas = db.Column(db.Text)
     asistencia = db.Column(db.Integer, default=0)
     clases_totales = db.Column(db.Integer, default=0)
     clases_restantes = db.Column(db.Integer, default=0)
-    
+
     asistencias = db.relationship('AsistenciaClase', backref='alumno_rel', lazy=True, cascade="all, delete-orphan")
 
 class Clase(db.Model):
@@ -70,7 +73,7 @@ class Venta(db.Model):
     __tablename__ = 'ventas'
     id = db.Column(db.Integer, primary_key=True)
     producto_id = db.Column(db.Integer, db.ForeignKey('productos.id'))
-    producto_nombre = db.Column(db.String(100)) 
+    producto_nombre = db.Column(db.String(100))
     monto = db.Column(db.Float, nullable=False)
     cantidad = db.Column(db.Integer, default=1)
     fecha = db.Column(db.DateTime, default=datetime.now)
