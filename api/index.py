@@ -71,7 +71,7 @@ def index():
     ultimos_alumnos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.id.desc()).limit(10).all()
     productos = Producto.query.filter(Producto.stock > 0).all()
 
-    return render_template('index.html',
+    return render_template('dashboard.html',
                          total_alumnos=total_alumnos,
                          alumnos_morosos=alumnos_morosos,
                          alumnos_vencidos=alumnos_vencidos,
