@@ -29,15 +29,20 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
     # Crear usuario admin por defecto si la tabla está vacía
-    if not User.query.filter_by(username='admin').first():
-        admin_user = User(
-            username='admin',
-            password=generate_password_hash('admin123'),
-            role='admin'
-        )
-        db.session.add(admin_user)
-        db.session.commit()
-        print(">>> Usuario admin creado: admin / admin123")
+    # (con try/except para evitar que un cold-start duplicado tumbe la app)
+    try:
+        if not User.query.filter_by(username='admin').first():
+            admin_user = User(
+                username='admin',
+                password=generate_password_hash('admin123'),
+                role='admin'
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+            print(">>> Usuario admin creado: admin / admin123")
+    except Exception as e:
+        db.session.rollback()
+        print(f">>> No se pudo crear admin (probablemente ya existe): {e}")
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -65,8 +70,8 @@ def index():
 
     ultimos_alumnos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.id.desc()).limit(10).all()
     productos = Producto.query.filter(Producto.stock > 0).all()
-    
-    return render_template('index.html', 
+
+    return render_template('index.html',
                          total_alumnos=total_alumnos,
                          alumnos_morosos=alumnos_morosos,
                          alumnos_vencidos=alumnos_vencidos,
@@ -83,13 +88,13 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-        
+
         if user and check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for('index'))
         else:
             flash('Usuario o contraseña incorrectos', 'danger')
-    
+
     return render_template('login.html')
 
 # ====================== RUTA DE LOGOUT ======================
@@ -111,35 +116,23 @@ def listar_alumnos():
 def nuevo_alumno():
     if request.method == 'POST':
         nombre = request.form.get('nombre')
-        telefono = request.form.get('telefono')
-        email = request.form.get('email')
         fecha_vencimiento = request.form.get('fecha_vencimiento')
-        
+
         nuevo = Alumno(
-            nombre=nombre,
-            telefono=telefono,
-            email=email,
-            fecha_registro=date.today(),
             fecha_vencimiento=datetime.strptime(fecha_vencimiento, '%Y-%m-%d').date() if fecha_vencimiento else None,
-            activo=True,
-            estado='activo',
-            morosidad=False
         )
         db.session.add(nuevo)
         db.session.commit()
         flash('Alumno agregado exitosamente', 'success')
         return redirect(url_for('listar_alumnos'))
-    
-    return render_template('nuevo_alumno.html')
 
-# ====================== RUTA PARA MARCAR ASISTENCIA ======================
 @app.route('/asistencia', methods=['GET', 'POST'])
 @login_required
 def marcar_asistencia():
     if request.method == 'POST':
         alumno_id = request.form.get('alumno_id')
         clase_id = request.form.get('clase_id')
-        
+
         asistencia = AsistenciaClase(
             alumno_id=alumno_id,
             clase_id=clase_id,
@@ -149,11 +142,11 @@ def marcar_asistencia():
         db.session.commit()
         flash('Asistencia registrada', 'success')
         return redirect(url_for('index'))
-    
+
     alumnos = Alumno.query.filter_by(activo=True, estado='activo').all()
     dias_semana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
     clases = Clase.query.filter_by(dia=dias_semana[date.today().weekday()]).all()
-    
+
     return render_template('asistencia.html', alumnos=alumnos, clases=clases)
 
 # ====================== RUTAS DE PRODUCTOS ======================
@@ -170,7 +163,7 @@ def nuevo_producto():
         nombre = request.form.get('nombre')
         precio = float(request.form.get('precio', 0))
         stock = int(request.form.get('stock', 0))
-        
+
         producto = Producto(
             nombre=nombre,
             precio=precio,
@@ -180,7 +173,7 @@ def nuevo_producto():
         db.session.commit()
         flash('Producto agregado', 'success')
         return redirect(url_for('listar_productos'))
-    
+
     return render_template('nuevo_producto.html')
 
 # ====================== RUTAS DE VENTAS ======================
@@ -196,15 +189,15 @@ def nueva_venta():
     if request.method == 'POST':
         producto_id = request.form.get('producto_id')
         cantidad = int(request.form.get('cantidad', 1))
-        
+
         producto = Producto.query.get(producto_id)
         if producto and producto.stock >= cantidad:
             total = producto.precio * cantidad
             venta = Venta(
                 producto_id=producto_id,
                 cantidad=cantidad,
-                total=total,
-                fecha=date.today()
+                monto=total,
+                fecha=datetime.now()
             )
             producto.stock -= cantidad
             db.session.add(venta)
@@ -212,9 +205,9 @@ def nueva_venta():
             flash('Venta registrada', 'success')
         else:
             flash('Stock insuficiente', 'danger')
-        
+
         return redirect(url_for('listar_ventas'))
-    
+
     productos = Producto.query.filter(Producto.stock > 0).all()
     return render_template('nueva_venta.html', productos=productos)
 
@@ -223,4 +216,13 @@ application = app
 
 # ====================== EJECUCIÓN LOCAL ======================
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)    return render_template('nuevo_alumno.html')
+
+# ====================== RUTA PARA MARCAR ASISTENCIA ======================
+            activo=True,
+            estado='activo',
+            morosidad=False
+            nombre=nombre,
+            telefono=telefono,
+            fecha_inicio=date.today(),
+
