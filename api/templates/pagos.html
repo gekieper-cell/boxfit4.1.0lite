@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Cobranzas - BoxFit{% endblock %}
+
+{% block content %}
+<div class="mb-5 flex flex-wrap justify-between items-center gap-3">
+    <div>
+        <h2 class="text-xl font-semibold text-white">Cobranzas</h2>
+        <p class="text-gray-500 text-sm">Historial de cuotas cobradas y alumnos con deuda</p>
+    </div>
+    <form method="GET" class="flex gap-2">
+        <input type="month" name="mes" value="{{ mes }}" class="form-control" onchange="this.form.submit()">
+        <a href="{{ url_for('exportar_pagos', mes=mes) }}" class="btn btn-outline"><i class="fas fa-file-csv"></i> Exportar</a>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="glass-card p-5">
+        <p class="text-gray-400 uppercase text-xs font-bold">Total cobrado</p>
+        <div class="text-4xl text-green-400" style="font-family: 'Bebas Neue', sans-serif;">${{ "{:,.0f}".format(total).replace(',', '.') }}</div>
+        <p class="text-xs text-gray-500">{{ pagos|length }} pagos</p>
+    </div>
+    {% for metodo, monto in por_metodo.items() %}
+    <div class="glass-card p-5">
+        <p class="text-gray-400 uppercase text-xs font-bold">{{ metodo }}</p>
+        <div class="text-3xl text-white" style="font-family: 'Bebas Neue', sans-serif;">${{ "{:,.0f}".format(monto).replace(',', '.') }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if deudores %}
+<div class="glass-card mb-8 border-l-4 border-red-500">
+    <div class="p-5 border-b border-white/5"><h3 class="text-lg font-bold text-red-300"><i class="fas fa-exclamation-circle"></i> Deben la cuota ({{ deudores|length }})</h3></div>
+    <div class="overflow-x-auto p-4">
+        <table class="w-full text-sm">
+            <thead><tr class="text-left text-xs uppercase text-gray-400"><th class="py-2">Alumno</th><th>Venció</th><th>Días</th><th>Cuota</th><th></th></tr></thead>
+            <tbody>
+            {% for a in deudores %}
+            <tr class="border-b border-white/5">
+                <td class="py-2">{{ a.nombre }}<br><span class="text-xs text-gray-500">{{ a.telefono or '' }}</span></td>
+                <td>{{ a.fecha_vencimiento.strftime('%d/%m/%Y') }}</td>
+                <td class="text-red-400 font-bold">{{ (hoy - a.fecha_vencimiento).days }}</td>
+                <td>${{ "{:,.0f}".format(a.valor_cuota or 0).replace(',', '.') }}</td>
+                <td class="text-right whitespace-nowrap">
+                    {% if a.telefono %}
+                    <a target="_blank" class="text-green-400 mr-3" title="Recordar por WhatsApp"
+                       href="https://wa.me/{{ a.telefono|replace(' ', '')|replace('-', '')|replace('+', '') }}?text={{ ('Hola ' ~ a.nombre ~ ', te recordamos que tu cuota de BoxFit venció el ' ~ a.fecha_vencimiento.strftime('%d/%m') ~ '. ¡Te esperamos!')|urlencode }}"><i class="fab fa-whatsapp text-lg"></i></a>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('registrar_pago', id=a.id) }}" class="inline" onsubmit="return confirm('¿Cobrar ${{ '%.0f'|format(a.valor_cuota or 0) }} en efectivo a {{ a.nombre }}?')">
+                        <button class="btn btn-success btn-sm">Cobrar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="glass-card">
+    <div class="p-5 border-b border-white/5"><h3 class="text-lg font-bold">Pagos del mes</h3></div>
+    <div class="overflow-x-auto p-4">
+        <table class="w-full text-sm">
+            <thead><tr class="text-left text-xs uppercase text-gray-400"><th class="py-2">Fecha</th><th>Alumno</th><th>Monto</th><th>Método</th><th>Cubre hasta</th><th></th></tr></thead>
+            <tbody>
+            {% for p in pagos %}
+            <tr class="border-b border-white/5">
+                <td class="py-2">{{ p.fecha.strftime('%d/%m/%Y') }}</td>
+                <td>{{ p.alumno_rel.nombre }}</td>
+                <td class="text-green-400 font-bold">${{ "{:,.0f}".format(p.monto).replace(',', '.') }}</td>
+                <td>{{ p.metodo }}</td>
+                <td>{{ p.periodo_hasta.strftime('%d/%m/%Y') if p.periodo_hasta else '-' }}</td>
+                <td class="text-right">
+                    {% if current_user.role == 'admin' %}
+                    <form method="POST" action="{{ url_for('anular_pago', id=p.id) }}" onsubmit="return confirm('¿Anular este pago? Se recalcula el vencimiento del alumno.')">
+                        <button class="text-red-500 hover:text-red-300" title="Anular"><i class="fas fa-undo"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="py-6 text-center text-gray-500">No hay pagos registrados en este mes.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

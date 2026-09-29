@@ -39,6 +39,25 @@ class Alumno(db.Model):
     clases_restantes = db.Column(db.Integer, default=0)
 
     asistencias = db.relationship('AsistenciaClase', backref='alumno_rel', lazy=True, cascade="all, delete-orphan")
+    pagos = db.relationship('Pago', backref='alumno_rel', lazy=True, cascade="all, delete-orphan", order_by='Pago.fecha.desc()')
+
+    @property
+    def vencido(self):
+        """Deuda calculada por fecha de vencimiento (no depende de un flag manual)"""
+        return self.fecha_vencimiento is not None and self.fecha_vencimiento < date.today()
+
+    def asistencias_desde(self, desde):
+        return len([a for a in self.asistencias if a.fecha >= desde])
+
+class Pago(db.Model):
+    __tablename__ = 'pagos'
+    id = db.Column(db.Integer, primary_key=True)
+    alumno_id = db.Column(db.Integer, db.ForeignKey('alumnos.id'), nullable=False)
+    monto = db.Column(db.Float, nullable=False)
+    metodo = db.Column(db.String(30), default='Efectivo')
+    fecha = db.Column(db.Date, default=date.today, index=True)
+    periodo_hasta = db.Column(db.Date)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class Clase(db.Model):
     __tablename__ = 'clases'

@@ -82,6 +82,29 @@
     </a>
 </div>
 
+<!-- KPIs de negocio: cobranza y asistencia -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+    <a href="{{ url_for('pagos') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
+        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Cobrado en cuotas este mes</p>
+        <div class="text-5xl text-green-400 my-2" style="font-family: 'Bebas Neue', sans-serif;">${{ "{:,.0f}".format(stats.cobrado_mes).replace(',', '.') }}</div>
+        {% set pct_cobro = (stats.cobrado_mes * 100 / stats.esperado_mes)|round|int if stats.esperado_mes else 0 %}
+        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-green-500" style="width: {{ [pct_cobro, 100]|min }}%"></div></div>
+        <p class="text-xs text-gray-500 mt-2">{{ pct_cobro }}% de ${{ "{:,.0f}".format(stats.esperado_mes).replace(',', '.') }} esperado · Ventas: ${{ "{:,.0f}".format(stats.ventas_mes).replace(',', '.') }}</p>
+    </a>
+    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
+        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Cuotas al día</p>
+        <div class="text-5xl text-white my-2" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.pct_al_dia }}%</div>
+        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-blue-500" style="width: {{ stats.pct_al_dia }}%"></div></div>
+        <p class="text-xs text-gray-500 mt-2">{{ stats.al_dia }} de {{ stats.total_alumnos }} alumnos activos · {{ stats.alumnos_pausados }} pausados</p>
+    </a>
+    <a href="{{ url_for('clases') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
+        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Asistencia (últimos 7 días)</p>
+        <div class="text-5xl text-red-400 my-2" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.pct_asist_7 }}%</div>
+        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-red-500" style="width: {{ stats.pct_asist_7 }}%"></div></div>
+        <p class="text-xs text-gray-500 mt-2">de los alumnos vino al menos 1 vez · 30 días: {{ stats.pct_asist_30 }}% · {{ stats.promedio_semanal }} clases/sem por alumno</p>
+    </a>
+</div>
+
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
     <div class="glass-card flex flex-col">
         <div class="card-header flex items-center justify-between p-5 border-b border-white/5">
@@ -195,7 +218,7 @@
                             <span class="text-sm text-gray-300 font-medium">{{ a.tipo_clase or 'General' }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            {% if a.morosidad %}
+                            {% if a.vencido %}
                                 <span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-red-500/20">Deudora</span>
                             {% else %}
                                 <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-green-500/20">Al día</span>

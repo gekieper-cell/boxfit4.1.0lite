@@ -455,6 +455,10 @@ Dashboard
 <i class="fas fa-users"></i>
 Alumnos
 </a>
+<a href="{{ url_for('pagos') }}" class="{% if request.endpoint == 'pagos' %}active{% endif %}">
+<i class="fas fa-cash-register"></i>
+Cobranzas
+</a>
 <a href="{{ url_for('clases') }}" class="{% if request.endpoint == 'clases' %}active{% endif %}">
 <i class="fas fa-calendar-alt"></i>
 Clases

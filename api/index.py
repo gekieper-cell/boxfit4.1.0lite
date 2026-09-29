@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta
+from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta, Pago
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_
 
@@ -30,7 +30,11 @@ DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 
 
 # ====================== INICIALIZACIÓN DE BASE DE DATOS ======================
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+    except Exception as e:
+        db.session.rollback()
+        print(f">>> ERROR creando tablas: {e}")
     try:
         if not User.query.filter_by(username='admin').first():
             admin_user = User(
@@ -61,8 +65,27 @@ def index():
     fecha_alerta = hoy + timedelta(days=7)
 
     total_alumnos = Alumno.query.filter_by(activo=True, estado='activo').count()
-    alumnos_vencidos = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento <= hoy).count()
-    alumnos_alerta = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento > hoy, Alumno.fecha_vencimiento <= fecha_alerta).count()
+    alumnos_vencidos = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento < hoy).count()
+    alumnos_alerta = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento >= hoy, Alumno.fecha_vencimiento <= fecha_alerta).count()
+    alumnos_pausados = Alumno.query.filter_by(activo=True, estado='pausado').count()
+
+    # Cobranza del mes
+    inicio_mes = hoy.replace(day=1)
+    cobrado_mes = db.session.query(func.coalesce(func.sum(Pago.monto), 0)).filter(Pago.fecha >= inicio_mes).scalar()
+    ventas_mes = db.session.query(func.coalesce(func.sum(Venta.monto), 0)).filter(Venta.fecha >= datetime.combine(inicio_mes, datetime.min.time())).scalar()
+    esperado_mes = db.session.query(func.coalesce(func.sum(Alumno.valor_cuota), 0)).filter(Alumno.activo == True, Alumno.estado == 'activo').scalar()
+    al_dia = total_alumnos - alumnos_vencidos
+    pct_al_dia = round(al_dia * 100 / total_alumnos) if total_alumnos else 0
+
+    # Asistencia: % de alumnos activos que vinieron al menos una vez en los últimos N días
+    def pct_vinieron(dias):
+        desde = hoy - timedelta(days=dias - 1)
+        vinieron = db.session.query(func.count(func.distinct(AsistenciaClase.alumno_id))) \
+            .join(Alumno, Alumno.id == AsistenciaClase.alumno_id) \
+            .filter(AsistenciaClase.fecha >= desde, Alumno.activo == True, Alumno.estado == 'activo').scalar()
+        return round(vinieron * 100 / total_alumnos) if total_alumnos else 0
+    asist_30 = AsistenciaClase.query.filter(AsistenciaClase.fecha >= hoy - timedelta(days=29)).count()
+    promedio_semanal = round(asist_30 / total_alumnos / (30 / 7), 1) if total_alumnos else 0
     asistencias_hoy = AsistenciaClase.query.filter_by(fecha=hoy).count()
     clases_hoy = Clase.query.filter_by(dia=DIAS_SEMANA[hoy.weekday()]).all()
     ultimos_alumnos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.id.desc()).limit(10).all()
@@ -76,6 +99,15 @@ def index():
         'clases_hoy': clases_hoy,
         'ultimos_alumnos': ultimos_alumnos,
         'productos': productos,
+        'alumnos_pausados': alumnos_pausados,
+        'cobrado_mes': cobrado_mes,
+        'ventas_mes': ventas_mes,
+        'esperado_mes': esperado_mes,
+        'al_dia': al_dia,
+        'pct_al_dia': pct_al_dia,
+        'pct_asist_7': pct_vinieron(7),
+        'pct_asist_30': pct_vinieron(30),
+        'promedio_semanal': promedio_semanal,
     }
 
     return render_template('dashboard.html', stats=stats)
@@ -112,14 +144,22 @@ def alumnos():
     filtro = request.args.get('filtro')
     query = Alumno.query.filter_by(activo=True, estado='activo')
 
+    q = (request.args.get('q') or '').strip()
     if filtro == 'deudores':
-        query = query.filter_by(morosidad=True)
+        query = query.filter(Alumno.fecha_vencimiento < hoy)
     elif filtro == 'vencimientos':
         fecha_alerta = hoy + timedelta(days=7)
-        query = query.filter(Alumno.fecha_vencimiento > hoy, Alumno.fecha_vencimiento <= fecha_alerta)
+        query = query.filter(Alumno.fecha_vencimiento >= hoy, Alumno.fecha_vencimiento <= fecha_alerta)
+    elif filtro == 'pausados':
+        query = Alumno.query.filter_by(activo=True, estado='pausado')
+    elif filtro == 'bajas':
+        query = Alumno.query.filter_by(activo=False)
+    if q:
+        query = query.filter(or_(Alumno.nombre.ilike(f'%{q}%'), Alumno.dni.ilike(f'%{q}%')))
 
     alumnos_list = query.order_by(Alumno.nombre).all()
-    return render_template('alumnos.html', alumnos=alumnos_list, filtro_actual=filtro)
+    return render_template('alumnos.html', alumnos=alumnos_list, filtro_actual=filtro, q=q,
+                           desde_30=hoy - timedelta(days=29))
 
 @app.route('/alumno/nuevo', methods=['GET', 'POST'])
 @login_required
@@ -227,12 +267,78 @@ def reactivar_alumno(id):
 @login_required
 def registrar_pago(id):
     alumno = Alumno.query.get_or_404(id)
-    alumno.ultimo_pago = date.today()
+    hoy = date.today()
+    try:
+        monto = float(request.form.get('monto') or alumno.valor_cuota or 0)
+        meses = max(1, int(request.form.get('meses') or 1))
+    except ValueError:
+        flash('Monto inválido', 'danger')
+        return redirect(request.referrer or url_for('alumnos'))
+
+    # Si paga antes de vencer, se extiende desde el vencimiento actual (no pierde días)
+    base = alumno.fecha_vencimiento if alumno.fecha_vencimiento and alumno.fecha_vencimiento > hoy else hoy
+    alumno.fecha_vencimiento = base + timedelta(days=30 * meses)
+    alumno.ultimo_pago = hoy
     alumno.morosidad = False
-    alumno.fecha_vencimiento = date.today() + timedelta(days=30)
+    db.session.add(Pago(alumno_id=alumno.id, monto=monto, metodo=request.form.get('metodo') or 'Efectivo',
+                        fecha=hoy, periodo_hasta=alumno.fecha_vencimiento, usuario_id=current_user.id))
     db.session.commit()
-    flash('Pago registrado', 'success')
-    return redirect(url_for('alumnos'))
+    flash(f'Pago de ${monto:,.0f} registrado. Vence el {alumno.fecha_vencimiento.strftime("%d/%m/%Y")}', 'success')
+    return redirect(request.referrer or url_for('alumnos'))
+
+@app.route('/pago/anular/<int:id>', methods=['POST'])
+@login_required
+def anular_pago(id):
+    if current_user.role != 'admin':
+        flash('Solo un administrador puede anular pagos', 'danger')
+        return redirect(url_for('pagos'))
+    pago = Pago.query.get_or_404(id)
+    alumno = pago.alumno_rel
+    db.session.delete(pago)
+    # Recalcular vencimiento según el último pago que queda
+    ultimo = Pago.query.filter(Pago.alumno_id == alumno.id, Pago.id != id).order_by(Pago.fecha.desc(), Pago.id.desc()).first()
+    alumno.fecha_vencimiento = ultimo.periodo_hasta if ultimo and ultimo.periodo_hasta else (alumno.fecha_inicio or date.today())
+    alumno.ultimo_pago = ultimo.fecha if ultimo else None
+    db.session.commit()
+    flash('Pago anulado', 'success')
+    return redirect(request.referrer or url_for('pagos'))
+
+# ====================== COBRANZAS ======================
+
+def _rango_mes(mes_str):
+    try:
+        inicio = datetime.strptime(mes_str, '%Y-%m').date()
+    except (TypeError, ValueError):
+        inicio = date.today().replace(day=1)
+    fin = (inicio.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return inicio, fin
+
+@app.route('/pagos')
+@login_required
+def pagos():
+    inicio, fin = _rango_mes(request.args.get('mes'))
+    lista = Pago.query.filter(Pago.fecha >= inicio, Pago.fecha < fin).order_by(Pago.fecha.desc(), Pago.id.desc()).all()
+    por_metodo = {}
+    for p in lista:
+        por_metodo[p.metodo] = por_metodo.get(p.metodo, 0) + p.monto
+    deudores = Alumno.query.filter(Alumno.activo == True, Alumno.estado == 'activo', Alumno.fecha_vencimiento < date.today()) \
+        .order_by(Alumno.fecha_vencimiento).all()
+    return render_template('pagos.html', pagos=lista, total=sum(por_metodo.values()), por_metodo=por_metodo,
+                           mes=inicio.strftime('%Y-%m'), deudores=deudores, hoy=date.today())
+
+@app.route('/pagos/exportar')
+@login_required
+def exportar_pagos():
+    inicio, fin = _rango_mes(request.args.get('mes'))
+    lista = Pago.query.filter(Pago.fecha >= inicio, Pago.fecha < fin).order_by(Pago.fecha).all()
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(['fecha', 'alumno', 'dni', 'monto', 'metodo', 'vence'])
+    for p in lista:
+        writer.writerow([p.fecha.strftime('%d/%m/%Y'), p.alumno_rel.nombre, p.alumno_rel.dni, f'{p.monto:.0f}', p.metodo,
+                         p.periodo_hasta.strftime('%d/%m/%Y') if p.periodo_hasta else ''])
+    return Response('\ufeff' + output.getvalue(), mimetype='text/csv',
+                    headers={'Content-Disposition': f'attachment; filename=cobranzas_{inicio.strftime("%Y-%m")}.csv'})
 
 # Ojo: esta ruta usa una URL fija (no url_for) porque asi la llama el JS de alumnos.html
 @app.route('/alumnos/pausar/<int:id>', methods=['POST'])
@@ -366,8 +472,7 @@ def registrar_asistencia():
 @app.route('/productos')
 @login_required
 def listar_productos():
-    productos = Producto.query.all()
-    return render_template('productos.html', productos=productos)
+    return redirect(url_for('listar_ventas'))
 
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
@@ -383,7 +488,7 @@ def nuevo_producto():
         flash('Producto agregado', 'success')
         return redirect(url_for('listar_ventas'))
 
-    return render_template('nuevo_producto.html')
+    return redirect(url_for('listar_ventas'))
 
 @app.route('/ventas')
 @login_required
@@ -453,7 +558,7 @@ def nuevo_usuario():
 
     return redirect(url_for('usuarios'))
 
-@app.route('/usuario/reset_password/<int:id>')
+@app.route('/usuario/reset_password/<int:id>', methods=['POST'])
 @login_required
 def reset_password(id):
     if current_user.role != 'admin':
@@ -466,7 +571,7 @@ def reset_password(id):
     flash(f'Contraseña de {usuario.username} restablecida a 123456', 'success')
     return redirect(url_for('usuarios'))
 
-@app.route('/usuario/eliminar/<int:id>')
+@app.route('/usuario/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_usuario(id):
     if current_user.role != 'admin':

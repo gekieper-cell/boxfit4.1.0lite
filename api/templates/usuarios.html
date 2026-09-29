@@ -34,12 +34,12 @@
                     </div>
                     <div class="flex gap-2">
                         {% if u.id != current_user.id %}
-                        <a href="{{ url_for('reset_password', id=u.id) }}" class="text-yellow-500" onclick="return confirm('¿Restablecer contraseña a 123456?')" title="Resetear contraseña">
+                        <form method="POST" action="{{ url_for('reset_password', id=u.id) }}" class="inline" onsubmit="return confirm('¿Restablecer contraseña a 123456?')"><button type="submit" class="text-yellow-500" title="Resetear contraseña">
                             <i class="fas fa-key"></i>
-                        </a>
-                        <a href="{{ url_for('eliminar_usuario', id=u.id) }}" class="text-red-500" onclick="return confirm('¿Eliminar este usuario?')" title="Eliminar">
+                        </button></form>
+                        <form method="POST" action="{{ url_for('eliminar_usuario', id=u.id) }}" class="inline" onsubmit="return confirm('¿Eliminar este usuario?')"><button type="submit" class="text-red-500" title="Eliminar">
                             <i class="fas fa-trash"></i>
-                        </a>
+                        </button></form>
                         {% endif %}
                     </div>
                 </div>
