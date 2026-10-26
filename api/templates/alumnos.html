@@ -1,207 +1,235 @@
 {% extends "base.html" %}
-{% block title %}Alumnos - BoxFit{% endblock %}
+{% block title %}Alumnos{% endblock %}
+
+{% block head %}
+<style>
+/* Filtros como control segmentado: uno activo a la vez */
+.filtros { display: flex; gap: 4px; padding: 4px; background: var(--superficie); border: 1px solid var(--linea); border-radius: 10px; overflow-x: auto; }
+.filtros a { white-space: nowrap; padding: 8px 14px; border-radius: 7px; color: var(--tx-suave); font-weight: 600; font-size: .88rem; text-decoration: none; }
+.filtros a:hover { color: var(--tx); }
+.filtros a.on { background: var(--superficie-2); color: var(--tx); box-shadow: 0 0 0 1px var(--linea); }
+.buscador { position: relative; min-width: 240px; flex: 1; max-width: 340px; }
+.buscador i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6B6B73; font-size: .85rem; }
+.main-content .buscador input { padding-left: 34px; }
+
+/* Lista de alumnos: tabla en escritorio, tarjetas en celular */
+.lista { background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio); }
+.fila { display: grid; grid-template-columns: minmax(200px, 2.2fr) 1.3fr 1.2fr 80px 100px 190px; gap: 16px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--linea); }
+.fila:last-child { border-bottom: 0; }
+.fila.cabeza { color: var(--tx-suave); font-size: .78rem; font-weight: 700; padding-top: 12px; padding-bottom: 12px; }
+.fila:not(.cabeza):hover { background: rgba(255,255,255,.02); }
+.persona { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.inicial { width: 38px; height: 38px; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--superficie-2); border: 1px solid var(--linea); text-transform: uppercase; }
+.persona b { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dato-2 { display: block; color: var(--tx-suave); font-size: .82rem; }
+.vence-mal { color: #FCA5A5; font-weight: 600; }
+.numero { font-weight: 800; font-variant-numeric: tabular-nums; }
+.estado { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.estado::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.e-ok { background: rgba(34,197,94,.12); color: #86EFAC; }
+.e-deuda { background: rgba(224,52,43,.15); color: #FCA5A5; }
+.e-pausa { background: rgba(245,158,11,.14); color: #FCD34D; }
+.e-baja { background: var(--superficie-2); color: var(--tx-suave); }
+.acciones { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.mas { position: relative; }
+.mas summary { list-style: none; cursor: pointer; }
+.mas summary::-webkit-details-marker { display: none; }
+.mas .menu-acc { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 200px; background: var(--superficie-2); border: 1px solid var(--linea); border-radius: 10px; padding: 6px; box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+.menu-acc button, .menu-acc a { display: flex; width: 100%; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 6px; background: none; border: 0; color: var(--tx); font-size: .88rem; text-align: left; cursor: pointer; text-decoration: none; }
+.menu-acc button:hover, .menu-acc a:hover { background: rgba(255,255,255,.06); }
+.menu-acc .peligro { color: #FCA5A5; }
+.vacio-lista { padding: 48px 20px; text-align: center; color: var(--tx-suave); }
+
+@media (max-width: 900px) {
+  .fila.cabeza { display: none; }
+  .fila { grid-template-columns: 1fr auto; gap: 10px 12px; padding: 16px; }
+  .fila .c-dni, .fila .c-plan, .fila .c-clases { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; font-size: .88rem; }
+  .fila .c-dni::before { content: "DNI"; color: var(--tx-suave); }
+  .fila .c-plan::before { content: "Plan"; color: var(--tx-suave); }
+  .fila .c-clases::before { content: "Clases (30 días)"; color: var(--tx-suave); }
+  .fila .c-dni > span, .fila .c-plan > span { margin-left: auto; }
+  .fila .c-dni .dato-2, .fila .c-plan .dato-2, .fila .c-clases .dato-2 { display: inline; margin-left: 8px; }
+  .fila .c-estado { grid-row: 1; grid-column: 2; }
+  .fila .acciones { grid-column: 1 / -1; justify-content: stretch; }
+  .fila .acciones > .btn { flex: 1; }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="mb-5">
-    <div class="flex justify-between items-center">
-        <div>
-            <h2 class="text-xl font-semibold dark:text-white">Alumnos</h2>
-            <p class="text-gray-500 text-sm">Gestión de alumnos del gimnasio</p>
-        </div>
-        <div class="flex gap-2">
-            <button onclick="document.getElementById('modalImportar').classList.remove('hidden')" class="btn btn-outline">
-                <i class="fas fa-file-excel"></i> Importar Excel
-            </button>
-            <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Nuevo Alumno
-            </a>
-        </div>
+<div class="flex flex-wrap justify-between items-end gap-4 mb-6">
+    <div>
+        <h2 class="text-2xl">Alumnos</h2>
+        <p class="text-gray-500 text-sm">{{ alumnos|length }} alumno{{ '' if alumnos|length == 1 else 's' }}{% if q %} para "{{ q }}"{% endif %}</p>
+    </div>
+    <div class="flex gap-2">
+        <button onclick="abrirModal('modalImportar')" class="btn btn-outline"><i class="fas fa-file-excel"></i> Importar</button>
+        <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nuevo alumno</a>
     </div>
 </div>
 
-<!-- Filtros -->
-<div class="flex gap-2 mb-4">
-    <a href="{{ url_for('alumnos') }}" class="btn btn-outline btn-sm {% if not filtro_actual %}bg-blue-500 text-white{% endif %}">Todos</a>
-    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'deudores' %}bg-red-500 text-white{% endif %}">Deudores</a>
-    <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'vencimientos' %}bg-yellow-500 text-white{% endif %}">Próximos vencimientos</a>
-    <a href="{{ url_for('alumnos', filtro='pausados') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'pausados' %}bg-yellow-500 text-white{% endif %}">Pausados</a>
-    <a href="{{ url_for('alumnos', filtro='bajas') }}" class="btn btn-outline btn-sm {% if filtro_actual == 'bajas' %}bg-gray-500 text-white{% endif %}">Bajas</a>
-    <form method="GET" class="ml-auto flex gap-2">
+<div class="flex flex-wrap gap-3 items-center mb-4">
+    <nav class="filtros" aria-label="Filtrar alumnos">
+        <a href="{{ url_for('alumnos') }}" class="{% if not filtro_actual %}on{% endif %}">Todos</a>
+        <a href="{{ url_for('alumnos', filtro='deudores') }}" class="{% if filtro_actual == 'deudores' %}on{% endif %}">Con deuda</a>
+        <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="{% if filtro_actual == 'vencimientos' %}on{% endif %}">Vencen pronto</a>
+        <a href="{{ url_for('alumnos', filtro='pausados') }}" class="{% if filtro_actual == 'pausados' %}on{% endif %}">Pausados</a>
+        <a href="{{ url_for('alumnos', filtro='bajas') }}" class="{% if filtro_actual == 'bajas' %}on{% endif %}">Bajas</a>
+    </nav>
+    <form method="GET" class="buscador ml-auto" role="search">
         {% if filtro_actual %}<input type="hidden" name="filtro" value="{{ filtro_actual }}">{% endif %}
-        <input name="q" value="{{ q or '' }}" placeholder="Buscar nombre o DNI..." class="form-control py-1">
-        <button class="btn btn-outline btn-sm"><i class="fas fa-search"></i></button>
+        <i class="fas fa-magnifying-glass"></i>
+        <input name="q" value="{{ q or '' }}" placeholder="Buscar por nombre o DNI" aria-label="Buscar alumno">
     </form>
 </div>
-<p class="text-sm text-gray-400 mb-3">{{ alumnos|length }} alumno{{ '' if alumnos|length == 1 else 's' }}</p>
 
-<div class="card">
-    <div class="overflow-x-auto p-4">
-        <table class="w-full">
-            <thead>
-                <tr class="text-left text-xs uppercase text-gray-400">
-                    <th>Nombre</th>
-                    <th>DNI / Teléfono</th>
-                    <th>Plan</th>
-                    <th>Clases</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for a in alumnos %}
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="py-3 font-medium">{{ a.nombre }}<br><span class="text-xs text-gray-500">{{ a.telefono or 'Sin teléfono' }}</span>{% if a.vencido %}<span class="text-xs text-red-500 ml-2">⚠️ Deuda</span>{% endif %}</td>
-                    <td class="py-3">{{ a.dni }}<br><span class="text-xs {{ 'text-red-400 font-bold' if a.vencido else 'text-gray-500' }}">Vence: {{ a.fecha_vencimiento.strftime('%d/%m/%Y') if a.fecha_vencimiento else '-' }}</span></td>
-                    <td class="py-3">{{ a.tipo_clase or 'Mensual' }}<br><span class="text-xs text-gray-500">${{ "%.0f"|format(a.valor_cuota) }}</span></td>
-                    <td class="py-3 text-center">{{ a.asistencias_desde(desde_30) }}<br><span class="text-xs text-gray-500">últimos 30 días</span></td>
-                    <td class="py-3">
-                        {% if a.estado == 'pausado' %}
-                            <span class="badge badge-warning bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                                <i class="fas fa-pause-circle"></i> Pausado
-                            </span>
-                        {% elif not a.activo %}
-                            <span class="badge badge-danger bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">Inactivo</span>
-                        {% elif a.vencido %}
-                            <span class="badge badge-danger bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs">Deuda</span>
-                        {% else %}
-                            <span class="badge badge-success bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">Activo</span>
-                        {% endif %}
-                        {% if a.fecha_pausa %}
-                        <div class="text-xs text-gray-400 mt-1">Pausado desde: {{ a.fecha_pausa.strftime('%d/%m/%Y') }}</div>
-                        {% endif %}
-                    </td>
-                    <td class="py-3">
-                        <div class="flex gap-2">
-                            <a href="{{ url_for('editar_alumno', id=a.id) }}" class="text-blue-500 hover:text-blue-700" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            
-                            {% if a.estado == 'pausado' %}
-                            <form action="{{ url_for('reactivar_alumno', id=a.id) }}" method="POST" class="inline">
-                                <button type="submit" class="text-green-500 hover:text-green-700" title="Reactivar">
-                                    <i class="fas fa-play-circle"></i>
-                                </button>
-                            </form>
-                            {% else %}
-                            <button onclick="abrirModalPausa({{ a.id }}, '{{ a.nombre }}')" class="text-yellow-500 hover:text-yellow-700" title="Pausar">
-                                <i class="fas fa-pause-circle"></i>
-                            </button>
-                            {% endif %}
-                            
-                            <button onclick="abrirModal('modalPago{{ a.id }}')" class="text-green-500 hover:text-green-700" title="Registrar pago">
-                                <i class="fas fa-money-bill"></i>
-                            </button>
-                            
-                            <form action="{{ url_for('eliminar_alumno', id=a.id) }}" method="POST" class="inline" onsubmit="return confirm('¿Dar de baja este alumno?')">
-                                <button type="submit" class="text-red-500 hover:text-red-700" title="Dar de baja">
-                                    <i class="fas fa-user-slash"></i>
-                                </button>
-                            </form>
-                        </div>
-                        
-                        <!-- Modal Pago -->
-                        <div id="modalPago{{ a.id }}" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-                            <div class="card w-80">
-                                <div class="card-header flex justify-between">
-                                    <h3>Registrar Pago</h3>
-                                    <button type="button" onclick="cerrarModal('modalPago{{ a.id }}')">&times;</button>
-                                </div>
-                                <div class="card-body">
-                                    <form method="POST" action="{{ url_for('registrar_pago', id=a.id) }}">
-                                        <p class="mb-3">Alumno: <strong>{{ a.nombre }}</strong></p>
-                                        <label class="form-label">Monto</label>
-                                        <input type="number" name="monto" step="1" min="0" value="{{ '%.0f'|format(a.valor_cuota or 0) }}" class="form-control mb-3" required>
-                                        <label class="form-label">Método</label>
-                                        <select name="metodo" class="form-control mb-3">
-                                            {% for m in ['Efectivo', 'Transferencia', 'Mercado Pago', 'Tarjeta'] %}
-                                            <option {% if m == a.forma_pago %}selected{% endif %}>{{ m }}</option>
-                                            {% endfor %}
-                                        </select>
-                                        <label class="form-label">Meses que paga</label>
-                                        <input type="number" name="meses" value="1" min="1" max="12" class="form-control mb-4">
-                                        <button type="submit" class="btn btn-success w-full">Registrar Pago</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="lista">
+    <div class="fila cabeza">
+        <span>Alumno</span><span>DNI y vencimiento</span><span>Plan</span><span>Clases</span><span>Estado</span><span></span>
+    </div>
+    {% for a in alumnos %}
+    <div class="fila">
+        <div class="persona">
+            <span class="inicial" aria-hidden="true">{{ a.nombre[:1] }}</span>
+            <div style="min-width:0">
+                <b>{{ a.nombre }}</b>
+                <span class="dato-2">{{ a.telefono or 'Sin teléfono' }}</span>
+            </div>
+        </div>
+        <div class="c-dni">
+            <span>{{ a.dni }}</span>
+            <span class="dato-2 {{ 'vence-mal' if a.vencido }}">
+                {% if a.fecha_vencimiento %}{{ 'Venció' if a.vencido else 'Vence' }} {{ a.fecha_vencimiento.strftime('%d/%m/%Y') }}{% else %}Sin vencimiento{% endif %}
+            </span>
+        </div>
+        <div class="c-plan">
+            <span>{{ a.tipo_clase or 'Mensual' }}</span>
+            <span class="dato-2">${{ "{:,.0f}".format(a.valor_cuota or 0).replace(',', '.') }}</span>
+        </div>
+        <div class="c-clases"><span class="numero">{{ a.asistencias_desde(desde_30) }}</span><span class="dato-2">en 30 días</span></div>
+        <div class="c-estado">
+            {% if a.estado == 'pausado' %}<span class="estado e-pausa" title="{{ 'Desde ' ~ a.fecha_pausa.strftime('%d/%m/%Y') if a.fecha_pausa else '' }}">Pausado</span>
+            {% elif not a.activo %}<span class="estado e-baja">Baja</span>
+            {% elif a.vencido %}<span class="estado e-deuda">Debe</span>
+            {% else %}<span class="estado e-ok">Al día</span>{% endif %}
+        </div>
+        <div class="acciones">
+            {% if a.activo %}
+            <button class="btn btn-sm {{ 'btn-primary' if a.vencido else 'btn-outline' }}" onclick="abrirPago(this)"
+                    data-url="{{ url_for('registrar_pago', id=a.id) }}" data-nombre="{{ a.nombre }}"
+                    data-monto="{{ '%.0f'|format(a.valor_cuota or 0) }}" data-metodo="{{ a.forma_pago or '' }}">
+                <i class="fas fa-money-bill-wave"></i> Cobrar
+            </button>
+            {% endif %}
+            <a href="{{ url_for('editar_alumno', id=a.id) }}" class="btn btn-outline btn-sm" aria-label="Editar a {{ a.nombre }}"><i class="fas fa-pen"></i></a>
+            {% if a.activo %}
+            <details class="mas">
+                <summary class="btn btn-outline btn-sm" aria-label="Más acciones"><i class="fas fa-ellipsis"></i></summary>
+                <div class="menu-acc">
+                    {% if a.estado == 'pausado' %}
+                    <form action="{{ url_for('reactivar_alumno', id=a.id) }}" method="POST"><button type="submit"><i class="fas fa-play"></i> Reactivar</button></form>
+                    {% else %}
+                    <button type="button" onclick="abrirPausa(this)" data-url="{{ url_for('pausar_alumno', id=a.id) }}" data-nombre="{{ a.nombre }}"><i class="fas fa-pause"></i> Pausar</button>
+                    {% endif %}
+                    {% if a.telefono %}
+                    <a href="https://wa.me/{{ a.telefono|replace(' ', '')|replace('-', '')|replace('+', '') }}" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i> Escribir por WhatsApp</a>
+                    {% endif %}
+                    <form action="{{ url_for('eliminar_alumno', id=a.id) }}" method="POST" onsubmit="return confirm('¿Dar de baja a este alumno?')"><button type="submit" class="peligro"><i class="fas fa-user-slash"></i> Dar de baja</button></form>
+                </div>
+            </details>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="vacio-lista">
+        {% if q or filtro_actual %}
+        No hay alumnos con ese filtro. <a href="{{ url_for('alumnos') }}" class="underline">Ver todos</a>
+        {% else %}
+        Todavía no cargaste alumnos. <a href="{{ url_for('nuevo_alumno') }}" class="underline">Agregá el primero</a> o importalos desde Excel.
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Cobrar -->
+<div id="modalPago" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target===this)cerrarModal('modalPago')">
+    <div class="card w-full max-w-sm">
+        <div class="card-header flex justify-between items-center">
+            <h3>Cobrar cuota</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="cerrarModal('modalPago')" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="card-body">
+            <form id="formPago" method="POST">
+                <p class="mb-4 text-sm">Alumno: <strong id="pagoNombre"></strong></p>
+                <div class="form-group">
+                    <label class="form-label">Monto ($)</label>
+                    <input type="number" name="monto" id="pagoMonto" step="1" min="0" required>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group">
+                        <label class="form-label">Método</label>
+                        <select name="metodo" id="pagoMetodo">
+                            {% for m in ['Efectivo', 'Transferencia', 'Mercado Pago', 'Tarjeta'] %}<option>{{ m }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Meses</label>
+                        <input type="number" name="meses" value="1" min="1" max="12">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-full mt-2">Registrar pago</button>
+            </form>
+        </div>
     </div>
 </div>
 
 <!-- Modal Importar Excel -->
-<div id="modalImportar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div id="modalImportar" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target===this)cerrarModal('modalImportar')">
     <div class="card w-full max-w-md">
-        <div class="card-header">
-            <h3 class="font-semibold">Importar Alumnos desde Excel</h3>
-            <button onclick="document.getElementById('modalImportar').classList.add('hidden')" class="text-gray-500 text-xl">&times;</button>
+        <div class="card-header flex justify-between items-center">
+            <h3>Importar alumnos desde Excel</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="cerrarModal('modalImportar')" aria-label="Cerrar">&times;</button>
         </div>
         <div class="card-body">
-            <div class="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg mb-4">
-                <p class="text-sm text-blue-700 dark:text-blue-300">
-                    <i class="fas fa-info-circle"></i> El archivo Excel debe tener las siguientes columnas:
-                </p>
-                <p class="text-xs text-blue-600 dark:text-blue-400 mt-1 font-mono">
-                    nombre, dni, telefono, tipo_clase, valor_cuota, fecha_inicio
-                </p>
-            </div>
-            
+            <p class="text-sm text-gray-500 mb-4">El archivo tiene que tener estas columnas: nombre, dni, telefono, tipo_clase, valor_cuota, fecha_inicio.
+                <a href="{{ url_for('descargar_plantilla_alumnos') }}" class="underline">Descargar plantilla</a></p>
             <form action="{{ url_for('importar_alumnos_excel') }}" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label class="form-label">Seleccionar archivo Excel (.xlsx, .xls)</label>
+                    <label class="form-label">Archivo (.xlsx)</label>
                     <input type="file" name="archivo" accept=".xlsx,.xls" required class="form-control">
                 </div>
-                <div class="flex gap-3 mt-4">
-                    <button type="submit" class="btn btn-primary flex-1">
-                        <i class="fas fa-upload"></i> Importar
-                    </button>
-                    <button type="button" onclick="document.getElementById('modalImportar').classList.add('hidden')" class="btn btn-outline flex-1">
-                        Cancelar
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary w-full"><i class="fas fa-upload"></i> Importar</button>
             </form>
-            
-            <div class="mt-4 text-center">
-                <a href="{{ url_for('descargar_plantilla_alumnos') }}" class="text-blue-500 text-sm hover:underline">
-                    <i class="fas fa-download"></i> Descargar plantilla de ejemplo
-                </a>
-            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Pausar Alumno -->
-<div id="modalPausa" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<!-- Modal Pausar -->
+<div id="modalPausa" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4" onclick="if(event.target===this)cerrarModal('modalPausa')">
     <div class="card w-full max-w-md">
-        <div class="card-header">
-            <h3 class="font-semibold">Pausar Alumno</h3>
-            <button onclick="document.getElementById('modalPausa').classList.add('hidden')">&times;</button>
+        <div class="card-header flex justify-between items-center">
+            <h3>Pausar alumno</h3>
+            <button type="button" class="btn btn-outline btn-sm" onclick="cerrarModal('modalPausa')" aria-label="Cerrar">&times;</button>
         </div>
         <div class="card-body">
             <form id="formPausa" method="POST">
-                <p class="mb-3 text-sm" id="pausaAlumnoNombre"></p>
+                <p class="mb-4 text-sm">Alumno: <strong id="pausaNombre"></strong></p>
                 <div class="form-group">
-                    <label class="form-label">Motivo de la pausa</label>
-                    <select name="motivo_pausa" class="form-control" required>
-                        <option value="">Seleccionar motivo</option>
+                    <label class="form-label">Motivo</label>
+                    <select name="motivo_pausa" required>
+                        <option value="">Elegí un motivo</option>
                         <option value="Vacaciones">Vacaciones</option>
-                        <option value="Lesión">Lesión / Recuperación</option>
-                        <option value="Viaje">Viaje / Trabajo</option>
+                        <option value="Lesión">Lesión o recuperación</option>
+                        <option value="Viaje">Viaje o trabajo</option>
                         <option value="Problemas económicos">Problemas económicos</option>
-                        <option value="Otro">Otro (especificar)</option>
+                        <option value="Otro">Otro</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Especificar (si es Otro)</label>
-                    <input type="text" name="motivo_otro" class="form-control" placeholder="Escriba el motivo">
+                    <label class="form-label">Detalle (si elegiste Otro)</label>
+                    <input type="text" name="motivo_otro">
                 </div>
-                <div class="flex gap-3 mt-4">
-                    <button type="submit" class="btn btn-warning flex-1">Pausar Alumno</button>
-                    <button type="button" onclick="document.getElementById('modalPausa').classList.add('hidden')" class="btn btn-outline flex-1">Cancelar</button>
-                </div>
+                <button type="submit" class="btn btn-warning w-full">Pausar</button>
             </form>
         </div>
     </div>
@@ -210,10 +238,25 @@
 <script>
 function abrirModal(id) { const m = document.getElementById(id); m.classList.remove('hidden'); m.classList.add('flex'); }
 function cerrarModal(id) { const m = document.getElementById(id); m.classList.add('hidden'); m.classList.remove('flex'); }
-function abrirModalPausa(id, nombre) {
-    document.getElementById('pausaAlumnoNombre').innerHTML = `¿Pausar a <strong>${nombre}</strong>?`;
-    document.getElementById('formPausa').action = `/alumnos/pausar/${id}`;
-    document.getElementById('modalPausa').classList.remove('hidden');
+function abrirPago(b) {
+    document.getElementById('formPago').action = b.dataset.url;
+    document.getElementById('pagoNombre').textContent = b.dataset.nombre;
+    document.getElementById('pagoMonto').value = b.dataset.monto;
+    if (b.dataset.metodo) document.getElementById('pagoMetodo').value = b.dataset.metodo;
+    abrirModal('modalPago');
 }
+function abrirPausa(b) {
+    document.getElementById('formPausa').action = b.dataset.url;
+    document.getElementById('pausaNombre').textContent = b.dataset.nombre;
+    b.closest('details').open = false;
+    abrirModal('modalPausa');
+}
+// Cerrar el menú de acciones al tocar afuera
+document.addEventListener('click', e => {
+    document.querySelectorAll('details.mas[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') ['modalPago', 'modalImportar', 'modalPausa'].forEach(cerrarModal);
+});
 </script>
 {% endblock %}

@@ -98,6 +98,23 @@ with app.app_context():
         db.session.rollback()
         print(f">>> No se pudo crear admin (probablemente ya existe): {e}")
 
+    # Catálogo inicial de la tienda (solo si no hay productos cargados); precio 0 = "consultar"
+    try:
+        if Producto.query.count() == 0:
+            for nombre, descripcion in [
+                ('Cabezal', 'Protector de cabeza para sparring'),
+                ('Bucal', 'Protector bucal termomoldeable'),
+                ('Soga', 'Soga de saltar con rulemanes'),
+                ('Botella con logo', 'Botella del club'),
+                ('Guantes con velcro', 'Cierre de abrojo, fáciles de poner'),
+                ('Guantes acordonados', 'Ajuste con cordones'),
+            ]:
+                db.session.add(Producto(nombre=nombre, descripcion=descripcion, precio=0, stock=0, publicado=True))
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f">>> No se pudo cargar el catálogo inicial: {e}")
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -119,20 +136,26 @@ def index():
         return landing()
     return dashboard()
 
+@app.route('/web')
+def landing_publica():
+    # Vista de la página pública aunque haya sesión iniciada
+    return landing()
+
 def landing():
-    # Si la base falla, la página pública igual tiene que mostrarse (sin horarios)
+    # Si la base falla, la página pública igual tiene que mostrarse (sin horarios ni tienda)
     try:
         clases = Clase.query.all()
+        productos = Producto.query.filter(Producto.publicado.isnot(False)).order_by(Producto.nombre).all()
     except Exception:
-        app.logger.exception('No se pudieron leer las clases para la landing')
+        app.logger.exception('No se pudieron leer clases o productos para la landing')
         db.session.rollback()
-        clases = []
+        clases, productos = [], []
     orden = {d: i for i, d in enumerate(DIAS_SEMANA)}
     por_dia = {}
     for c in sorted(clases, key=lambda c: (orden.get(c.dia, 99), c.hora or '')):
         por_dia.setdefault(c.dia or 'A confirmar', []).append(c)
     whatsapp = ''.join(ch for ch in os.environ.get('WHATSAPP', '') if ch.isdigit())
-    return render_template('landing.html', horarios=list(por_dia.items()), whatsapp=whatsapp)
+    return render_template('landing.html', horarios=list(por_dia.items()), productos=productos, whatsapp=whatsapp)
 
 def dashboard():
     hoy = date.today()
@@ -692,17 +715,54 @@ def listar_productos():
 @app.route('/producto/nuevo', methods=['GET', 'POST'])
 @login_required
 def nuevo_producto():
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('index'))
     if request.method == 'POST':
         producto = Producto(
-            nombre=request.form.get('nombre'),
-            precio=float(request.form.get('precio', 0)),
-            stock=int(request.form.get('stock', 0))
+            nombre=request.form.get('nombre', '').strip(),
+            descripcion=request.form.get('descripcion', '').strip() or None,
+            precio=float(request.form.get('precio') or 0),
+            stock=int(request.form.get('stock') or 0),
+            publicado=bool(request.form.get('publicado'))
         )
         db.session.add(producto)
         db.session.commit()
         flash('Producto agregado', 'success')
-        return redirect(url_for('listar_ventas'))
+    return redirect(url_for('listar_ventas'))
 
+@app.route('/producto/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_producto(id):
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('index'))
+    p = Producto.query.get_or_404(id)
+    p.nombre = request.form.get('nombre', p.nombre).strip() or p.nombre
+    p.descripcion = request.form.get('descripcion', '').strip() or None
+    p.precio = float(request.form.get('precio') or 0)
+    p.stock = int(request.form.get('stock') or 0)
+    p.publicado = bool(request.form.get('publicado'))
+    db.session.commit()
+    flash(f'{p.nombre} guardado', 'success')
+    return redirect(url_for('listar_ventas'))
+
+@app.route('/producto/eliminar/<int:id>', methods=['POST'])
+@login_required
+def eliminar_producto(id):
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('index'))
+    p = Producto.query.get_or_404(id)
+    if p.ventas:
+        # Con ventas registradas no se borra: se oculta de la web para conservar el historial
+        p.publicado = False
+        p.stock = 0
+        flash(f'{p.nombre} tiene ventas registradas: se ocultó de la web en vez de borrarse', 'success')
+    else:
+        db.session.delete(p)
+        flash('Producto eliminado', 'success')
+    db.session.commit()
     return redirect(url_for('listar_ventas'))
 
 @app.route('/ventas')
@@ -714,7 +774,8 @@ def listar_ventas():
 
     ventas = Venta.query.order_by(Venta.fecha.desc()).all()
     productos = Producto.query.filter(Producto.stock > 0).all()
-    return render_template('ventas.html', ventas=ventas, productos=productos)
+    catalogo = Producto.query.order_by(Producto.nombre).all()
+    return render_template('ventas.html', ventas=ventas, productos=productos, catalogo=catalogo)
 
 @app.route('/venta/rapida', methods=['POST'])
 @login_required

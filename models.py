@@ -89,6 +89,8 @@ class Producto(db.Model):
     nombre = db.Column(db.String(100), nullable=False)
     precio = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, default=0)
+    descripcion = db.Column(db.String(200))
+    publicado = db.Column(db.Boolean, default=True)  # se muestra en la tienda de la web
     ventas = db.relationship('Venta', backref='producto_rel', lazy=True)
 
 class Venta(db.Model):

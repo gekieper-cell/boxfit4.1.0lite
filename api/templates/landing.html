@@ -100,6 +100,16 @@ img { max-width: 100%; display: block; }
 .dia.hoy .nombre { color: #CFCFCF; }
 .vacio { background: var(--gris); padding: 32px; }
 
+/* ---------- Tienda ---------- */
+.tienda { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+.tienda li { background: var(--gris); padding: 24px; display: flex; flex-direction: column; border-top: 6px solid var(--negro); }
+.tienda h3 { font-weight: 900; font-stretch: 112%; text-transform: uppercase; font-size: 1.35rem; line-height: 1.05; }
+.tienda p { color: var(--gris-tx); font-size: .95rem; margin-top: 6px; }
+.tienda .pie { margin-top: auto; padding-top: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.tienda .precio { font-weight: 800; font-size: 1.15rem; }
+.tienda a { text-decoration: none; font-weight: 800; text-transform: uppercase; font-size: .9rem; background: var(--negro); color: var(--blanco); padding: 10px 16px; transition: background .15s ease; }
+.tienda a:hover { background: var(--guante); }
+
 /* ---------- Preguntas ---------- */
 .preguntas { max-width: 820px; }
 .preguntas details { border-top: 1px solid #D9D9D9; }
@@ -165,6 +175,7 @@ footer a { color: var(--blanco); }
     <ul>
       <li><a href="#clase">La clase</a></li>
       <li><a href="#horarios">Horarios</a></li>
+      {% if productos %}<li><a href="#tienda">Tienda</a></li>{% endif %}
       <li><a href="#preguntas">Preguntas</a></li>
       <li><a href="{{ wa_link }}" {% if whatsapp %}target="_blank" rel="noopener"{% endif %}>Clase gratis</a></li>
     </ul>
@@ -239,6 +250,28 @@ footer a { color: var(--blanco); }
       {% endif %}
     </div>
   </section>
+
+  {% if productos %}
+  <section class="seccion" id="tienda">
+    <div class="envoltura">
+      <h2 class="titulo">Tienda del club</h2>
+      <p class="intro">Equipamiento para entrenar. Pedilo por WhatsApp y lo retirás en el club.</p>
+      <ul class="tienda">
+        {% for p in productos %}
+        {% set wa_prod = ('https://wa.me/' ~ whatsapp ~ '?text=' ~ (('Hola, quiero consultar por: ' ~ p.nombre)|urlencode)) if whatsapp else '#' %}
+        <li>
+          <h3>{{ p.nombre }}</h3>
+          {% if p.descripcion %}<p>{{ p.descripcion }}</p>{% endif %}
+          <div class="pie">
+            <span class="precio">{% if p.precio and p.precio > 0 %}${{ '{:,.0f}'.format(p.precio).replace(',', '.') }}{% else %}Consultá el precio{% endif %}</span>
+            {% if whatsapp %}<a href="{{ wa_prod }}" target="_blank" rel="noopener">Pedir</a>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% endif %}
 
   <section class="seccion" id="preguntas">
     <div class="envoltura">
