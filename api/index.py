@@ -657,9 +657,30 @@ def importar_alumnos_excel():
 @app.route('/clases')
 @login_required
 def clases():
-    todas_clases = Clase.query.order_by(Clase.dia, Clase.hora).all()
+    orden = {d: i for i, d in enumerate(DIAS_SEMANA)}
+    todas_clases = sorted(Clase.query.all(), key=lambda c: (orden.get(c.dia, 99), c.hora or ''))
+    por_dia = {}
+    for c in todas_clases:
+        por_dia.setdefault(c.dia or 'A confirmar', []).append(c)
     alumnos_activos = Alumno.query.filter_by(activo=True, estado='activo').order_by(Alumno.nombre).all()
-    return render_template('clases.html', clases=todas_clases, alumnos_activos=alumnos_activos)
+    hoy_nombre = DIAS_SEMANA[date.today().weekday()]
+    return render_template('clases.html', clases=todas_clases, por_dia=list(por_dia.items()),
+                           alumnos_activos=alumnos_activos, hoy_nombre=hoy_nombre, dias_semana=DIAS_SEMANA)
+
+@app.route('/clase/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_clase(id):
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('clases'))
+    clase = Clase.query.get_or_404(id)
+    clase.nombre = request.form.get('nombre', clase.nombre).strip() or clase.nombre
+    clase.dia = request.form.get('dia', clase.dia)
+    clase.hora = request.form.get('hora', clase.hora).strip() or clase.hora
+    clase.capacidad = int(request.form.get('capacidad') or clase.capacidad or 20)
+    db.session.commit()
+    flash('Horario actualizado (ya se ve en la web)', 'success')
+    return redirect(url_for('clases'))
 
 @app.route('/clase/nueva', methods=['POST'])
 @login_required

@@ -1,0 +1,75 @@
+{# Campos compartidos por "Nuevo alumno" y "Editar alumno". Recibe `a` (alumno o None). #}
+{% set planes = ['2 clases por semana', '3 clases por semana', 'Libre', 'Personalizado'] %}
+{% set medios = ['Efectivo', 'Transferencia', 'Mercado Pago', 'Tarjeta'] %}
+
+<div class="card mb-4">
+    <div class="card-header"><h3>Datos personales</h3></div>
+    <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        <div class="form-group">
+            <label class="form-label" for="f-nombre">Nombre y apellido</label>
+            <input id="f-nombre" type="text" name="nombre" value="{{ a.nombre if a else '' }}" required autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-dni">DNI</label>
+            <input id="f-dni" type="text" name="dni" value="{{ a.dni if a else '' }}" required inputmode="numeric">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-tel">Celular (con código de área, para WhatsApp)</label>
+            <input id="f-tel" type="tel" name="telefono" value="{{ (a.telefono or '') if a else '' }}" placeholder="Ej.: 5492323123456">
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h3>Contacto de emergencia</h3></div>
+    <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        <div class="form-group">
+            <label class="form-label" for="f-emer">Nombre</label>
+            <input id="f-emer" type="text" name="contacto_emergencia" value="{{ (a.contacto_emergencia or '') if a else '' }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-emer-tel">Teléfono</label>
+            <input id="f-emer-tel" type="tel" name="telefono_emergencia" value="{{ (a.telefono_emergencia or '') if a else '' }}">
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header"><h3>Plan y cuota</h3></div>
+    <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-x-4">
+        <div class="form-group">
+            <label class="form-label" for="f-plan">Plan</label>
+            <select id="f-plan" name="tipo_clase">
+                <option value="">Elegí un plan</option>
+                {% for p in planes %}<option value="{{ p }}" {% if a and a.tipo_clase == p %}selected{% endif %}>{{ p }}</option>{% endfor %}
+                {% if a and a.tipo_clase and a.tipo_clase not in planes %}<option value="{{ a.tipo_clase }}" selected>{{ a.tipo_clase }}</option>{% endif %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-cuota">Cuota mensual ($)</label>
+            <input id="f-cuota" type="number" name="valor_cuota" value="{{ '%.0f'|format(a.valor_cuota or 0) if a else '15000' }}" min="0" step="1">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-medio">Medio de pago habitual</label>
+            <select id="f-medio" name="forma_pago">
+                <option value="">Sin definir</option>
+                {% for m in medios %}<option value="{{ m }}" {% if a and (a.forma_pago or '')|lower == m|lower %}selected{% endif %}>{{ m }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-clases">Clases incluidas (solo planes por clase)</label>
+            <input id="f-clases" type="number" name="clases_totales" value="{{ (a.clases_totales or 0) if a else 0 }}" min="0">
+        </div>
+        {% if not a %}
+        <div class="form-group">
+            <label class="form-label" for="f-inicio">Fecha de inicio</label>
+            <input id="f-inicio" type="date" name="fecha_inicio">
+            <span class="dato-2">La primera cuota vence 30 días después. Si lo dejás vacío, es hoy.</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="f-ultimo">Último pago (opcional)</label>
+            <input id="f-ultimo" type="date" name="ultimo_pago">
+        </div>
+        {% endif %}
+    </div>
+</div>

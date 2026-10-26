@@ -1,234 +1,154 @@
 {% extends "base.html" %}
-{% block title %}Dashboard - BoxFit{% endblock %}
+{% block title %}Inicio{% endblock %}
+
+{% macro plata(n) %}${{ "{:,.0f}".format(n or 0).replace(',', '.') }}{% endmacro %}
 
 {% block content %}
-{% set dias = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'] %}
+{% set dias = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'] %}
 {% set meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] %}
-<div class="mb-8 pl-16 lg:pl-0">
-    <p class="text-gray-400 text-sm first-letter:uppercase">{{ dias[hoy.weekday()] }} {{ hoy.day }} de {{ meses[hoy.month - 1] }}</p>
-    <h2 class="text-5xl text-white leading-none mt-1" style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">Hola, {{ current_user.username }}</h2>
+
+<div class="encabezado">
+    <div>
+        <p style="margin:0 0 4px">{{ dias[hoy.weekday()] }} {{ hoy.day }} de {{ meses[hoy.month - 1] }}</p>
+        <h2>Hola, {{ current_user.username }}</h2>
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ url_for('clases') }}" class="btn btn-outline"><i class="fas fa-user-check"></i> Tomar asistencia</a>
+        <a href="{{ url_for('nuevo_alumno') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nuevo alumno</a>
+    </div>
 </div>
 
-{% if stats.alumnos_alerta > 0 %}
-<a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="block mb-6 group">
-    <div class="glass-card p-6 border-l-4 border-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 transition-all duration-300">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl font-bold text-yellow-100 uppercase" style="font-family: 'Bebas Neue', sans-serif;">CUOTAS POR VENCER</h3>
-                <p class="text-yellow-200/80 text-lg">{{ stats.alumnos_alerta }} alumnos vencen en los próximos 7 días</p>
-            </div>
-            <i class="fas fa-chevron-right ml-auto text-yellow-500/50 group-hover:text-yellow-500"></i>
-        </div>
-    </div>
-</a>
-{% endif %}
-
+{# Lo urgente primero: a quién hay que cobrarle #}
 {% if stats.alumnos_vencidos > 0 %}
-<a href="{{ url_for('alumnos', filtro='deudores') }}" class="block mb-8 group">
-    <div class="glass-card p-6 border-l-4 border-red-500 bg-red-500/10 hover:bg-red-500/20 transition-all duration-300">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <i class="fas fa-times-circle text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-xl font-bold text-red-100 uppercase" style="font-family: 'Bebas Neue', sans-serif;">ALUMNOS CON DEUDA</h3>
-                <p class="text-red-200/80 text-lg">{{ stats.alumnos_vencidos }} alumnos con cuotas vencidas</p>
-            </div>
-            <i class="fas fa-chevron-right ml-auto text-red-500/50 group-hover:text-red-500"></i>
-        </div>
-    </div>
+<a href="{{ url_for('pagos') }}" class="aviso aviso-rojo">
+    <i class="fas fa-triangle-exclamation ico"></i>
+    <div><b>{{ stats.alumnos_vencidos }} alumno{{ '' if stats.alumnos_vencidos == 1 else 's' }} con la cuota vencida</b><br><span>Mandales un recordatorio o registrá el pago.</span></div>
+    <span class="ir">Ver deudores</span>
+</a>
+{% endif %}
+{% if stats.alumnos_alerta > 0 %}
+<a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="aviso aviso-amarillo">
+    <i class="fas fa-clock ico"></i>
+    <div><b>{{ stats.alumnos_alerta }} cuota{{ '' if stats.alumnos_alerta == 1 else 's' }} vence{{ '' if stats.alumnos_alerta == 1 else 'n' }} en los próximos 7 días</b></div>
+    <span class="ir">Ver lista</span>
 </a>
 {% endif %}
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
-    <a href="{{ url_for('alumnos') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-blue-500/30">
-        <div class="text-5xl mb-2 text-white" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.total_alumnos }}</div>
-        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold mb-4">Total Alumnos</p>
-        <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-400">
-            <i class="fas fa-users text-xl"></i>
-        </div>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 mb-4">
+    <a href="{{ url_for('alumnos') }}" class="kpi">
+        <small>Alumnos activos</small>
+        <strong>{{ stats.total_alumnos }}</strong>
+        <span class="nota">{{ stats.alumnos_pausados }} pausado{{ '' if stats.alumnos_pausados == 1 else 's' }}</span>
     </a>
-
-    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-red-500/30 bg-red-500/5">
-        <div class="text-5xl mb-2 text-red-500" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_vencidos }}</div>
-        <p class="text-red-200/60 uppercase tracking-wider text-xs font-bold mb-4">Con Deuda</p>
-        <div class="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto text-red-500">
-            <i class="fas fa-hand-holding-dollar text-xl"></i>
-        </div>
+    <a href="{{ url_for('clases') }}" class="kpi">
+        <small>Presentes hoy</small>
+        <strong>{{ stats.asistencias_hoy }}</strong>
+        <span class="nota">{{ stats.clases_hoy|length }} clase{{ '' if stats.clases_hoy|length == 1 else 's' }} hoy</span>
     </a>
-
-    <a href="{{ url_for('clases', vista='hoy') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-green-500/30">
-        <div class="text-5xl mb-2 text-green-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.asistencias_hoy }}</div>
-        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold mb-4">Presentes Hoy</p>
-        <div class="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-400">
-            <i class="fas fa-user-check text-xl"></i>
-        </div>
+    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="kpi">
+        <small>Con deuda</small>
+        <strong style="color:{{ '#FCA5A5' if stats.alumnos_vencidos else 'inherit' }}">{{ stats.alumnos_vencidos }}</strong>
+        <span class="nota">{{ stats.pct_al_dia }}% al día</span>
     </a>
-
-    <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-yellow-500/30 bg-yellow-500/5">
-        <div class="text-5xl mb-2 text-yellow-400" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.alumnos_alerta }}</div>
-        <p class="text-yellow-200/60 uppercase tracking-wider text-xs font-bold mb-4">Próximos Venc.</p>
-        <div class="w-12 h-12 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto text-yellow-400">
-            <i class="fas fa-clock text-xl"></i>
-        </div>
+    <a href="{{ url_for('alumnos', filtro='vencimientos') }}" class="kpi">
+        <small>Vencen esta semana</small>
+        <strong>{{ stats.alumnos_alerta }}</strong>
+        <span class="nota">próximos 7 días</span>
     </a>
 </div>
 
-<!-- KPIs de negocio: cobranza y asistencia -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-    <a href="{{ url_for('pagos') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
-        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Cobrado en cuotas este mes</p>
-        <div class="text-5xl text-green-400 my-2" style="font-family: 'Bebas Neue', sans-serif;">${{ "{:,.0f}".format(stats.cobrado_mes).replace(',', '.') }}</div>
-        {% set pct_cobro = (stats.cobrado_mes * 100 / stats.esperado_mes)|round|int if stats.esperado_mes else 0 %}
-        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-green-500" style="width: {{ [pct_cobro, 100]|min }}%"></div></div>
-        <p class="text-xs text-gray-500 mt-2">{{ pct_cobro }}% de ${{ "{:,.0f}".format(stats.esperado_mes).replace(',', '.') }} esperado · Ventas: ${{ "{:,.0f}".format(stats.ventas_mes).replace(',', '.') }}</p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    {% set pct_cobro = (stats.cobrado_mes * 100 / stats.esperado_mes)|round|int if stats.esperado_mes else 0 %}
+    <a href="{{ url_for('pagos') }}" class="kpi">
+        <small>Cobrado en cuotas este mes</small>
+        <strong>{{ plata(stats.cobrado_mes) }}</strong>
+        <div class="barra-prog"><i class="verde" style="width: {{ [pct_cobro, 100]|min }}%"></i></div>
+        <span class="nota">{{ pct_cobro }}% de {{ plata(stats.esperado_mes) }} esperado</span>
     </a>
-    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
-        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Cuotas al día</p>
-        <div class="text-5xl text-white my-2" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.pct_al_dia }}%</div>
-        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-blue-500" style="width: {{ stats.pct_al_dia }}%"></div></div>
-        <p class="text-xs text-gray-500 mt-2">{{ stats.al_dia }} de {{ stats.total_alumnos }} alumnos activos · {{ stats.alumnos_pausados }} pausados</p>
+    <a href="{{ url_for('alumnos', filtro='deudores') }}" class="kpi">
+        <small>Cuotas al día</small>
+        <strong>{{ stats.pct_al_dia }}%</strong>
+        <div class="barra-prog"><i class="verde" style="width: {{ stats.pct_al_dia }}%"></i></div>
+        <span class="nota">{{ stats.al_dia }} de {{ stats.total_alumnos }} alumnos</span>
     </a>
-    <a href="{{ url_for('clases') }}" class="glass-card p-6 block hover:scale-[1.02] transition-transform">
-        <p class="text-gray-400 uppercase tracking-wider text-xs font-bold">Asistencia (últimos 7 días)</p>
-        <div class="text-5xl text-red-400 my-2" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.pct_asist_7 }}%</div>
-        <div class="h-2 bg-white/10 rounded-full overflow-hidden"><div class="h-full bg-red-500" style="width: {{ stats.pct_asist_7 }}%"></div></div>
-        <p class="text-xs text-gray-500 mt-2">de los alumnos vino al menos 1 vez · 30 días: {{ stats.pct_asist_30 }}% · {{ stats.promedio_semanal }} clases/sem por alumno</p>
+    <a href="{{ url_for('clases') }}" class="kpi">
+        <small>Vinieron en los últimos 7 días</small>
+        <strong>{{ stats.pct_asist_7 }}%</strong>
+        <div class="barra-prog"><i style="width: {{ stats.pct_asist_7 }}%"></i></div>
+        <span class="nota">30 días: {{ stats.pct_asist_30 }}% · {{ stats.promedio_semanal }} clases por semana por alumno</span>
     </a>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-    <div class="glass-card flex flex-col">
-        <div class="card-header flex items-center justify-between p-5 border-b border-white/5">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center text-blue-400">
-                    <i class="fas fa-calendar-day"></i>
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+    <div class="card lg:col-span-3">
+        <div class="card-header flex justify-between items-center">
+            <h3>Clases de hoy</h3>
+            <a href="{{ url_for('clases') }}" class="text-sm text-gray-400 hover:text-white">Ver todas</a>
+        </div>
+        <div class="lista-simple">
+            {% for clase in stats.clases_hoy %}
+            {% set ocup = ((clase.asistentes_hoy or 0) * 100 / clase.capacidad)|int if clase.capacidad else 0 %}
+            <div>
+                <span style="font-weight:800; font-size:1.1rem; min-width:56px; font-variant-numeric:tabular-nums">{{ clase.hora }}</span>
+                <div style="flex:1">
+                    <b>{{ clase.nombre }}</b>
+                    <div class="barra-prog" style="margin:6px 0 0; max-width:240px"><i class="{{ 'verde' if ocup < 90 else '' }}" style="width: {{ [ocup, 100]|min }}%"></i></div>
                 </div>
-                <h3 class="text-xl font-bold tracking-tight">CLASES DE HOY</h3>
+                <span class="text-sm text-gray-400">{{ clase.asistentes_hoy or 0 }} / {{ clase.capacidad }}</span>
             </div>
-            <a href="{{ url_for('clases', vista='semanal') }}" class="text-blue-400 hover:text-white text-xs font-bold uppercase tracking-widest flex items-center gap-1 transition-colors">
-                Semanal <i class="fas fa-arrow-right"></i>
-            </a>
-        </div>
-        <div class="p-5 space-y-3">
-            {% if stats.clases_hoy %}
-                {% for clase in stats.clases_hoy %}
-                <div class="p-4 bg-white/5 rounded-xl border border-white/5 hover:border-red-500/30 transition-all group">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="font-bold text-lg text-white group-hover:text-red-400 transition-colors">{{ clase.nombre }}</h4>
-                            <p class="text-gray-400 text-sm font-medium"><i class="far fa-clock mr-1 text-red-500"></i> {{ clase.hora }}</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs font-bold text-gray-500 uppercase block mb-1">Cupo</span>
-                            <span class="bg-red-600/20 text-red-400 px-3 py-1 rounded-lg text-sm font-bold border border-red-500/20">{{ clase.asistentes_hoy or 0 }}/{{ clase.capacidad }}</span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
             {% else %}
-                <div class="text-center py-10">
-                    <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-600">
-                        <i class="fas fa-calendar-times text-2xl"></i>
-                    </div>
-                    <p class="text-gray-500 font-medium italic">No hay clases registradas para hoy.</p>
-                </div>
-            {% endif %}
+            <div class="vacio-lista" style="display:block">Hoy no hay clases en la grilla. <a href="{{ url_for('clases') }}" class="underline">Cargar horarios</a></div>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="glass-card">
-        <div class="card-header flex items-center gap-3 p-5 border-b border-white/5">
-            <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center text-yellow-400">
-                <i class="fas fa-bolt"></i>
-            </div>
-            <h3 class="text-xl font-bold tracking-tight uppercase">Venta Directa</h3>
-        </div>
-        <div class="p-6">
-            <form method="POST" action="{{ url_for('venta_rapida') }}" class="space-y-5">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Producto / Insumo</label>
-                    <select name="producto_id" required class="form-control w-full bg-[#1a1a2e] border-gray-700 text-white py-3">
-                        <option value="" class="bg-[#1a1a2e]">🔍 Seleccionar para vender...</option>
+    <div class="card lg:col-span-2">
+        <div class="card-header"><h3>Venta rápida</h3></div>
+        <div class="card-body">
+            {% if stats.productos %}
+            <form method="POST" action="{{ url_for('venta_rapida') }}">
+                <div class="form-group">
+                    <label class="form-label">Producto</label>
+                    <select name="producto_id" required>
+                        <option value="">Elegí un producto</option>
                         {% for p in stats.productos %}
-                        <option value="{{ p.id }}" class="bg-[#1a1a2e]">{{ p.nombre }} — ${{ "{:,.0f}".format(p.precio) }} (Stock: {{ p.stock }})</option>
+                        <option value="{{ p.id }}">{{ p.nombre }} · {{ plata(p.precio) }} (quedan {{ p.stock }})</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Cantidad</label>
-                        <input type="number" name="cantidad" value="1" min="1" class="form-control w-full bg-[#1a1a2e] border-gray-700 text-white py-3">
+                <div class="flex gap-3 items-end">
+                    <div class="form-group" style="width:100px; margin:0">
+                        <label class="form-label">Cantidad</label>
+                        <input type="number" name="cantidad" value="1" min="1">
                     </div>
-                    <div class="flex items-end">
-                        <button type="submit" class="btn btn-primary w-full py-3 h-[50px] shadow-lg shadow-red-900/40 font-bold uppercase tracking-widest">
-                            <i class="fas fa-cart-plus mr-2"></i> Cobrar
-                        </button>
-                    </div>
+                    <button type="submit" class="btn btn-primary flex-1">Registrar venta</button>
                 </div>
             </form>
+            {% else %}
+            <p class="text-sm text-gray-500">No hay productos con stock. Cargalo en <a href="{{ url_for('listar_ventas') }}" class="underline">Tienda y ventas</a>.</p>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<div class="glass-card mb-10 overflow-hidden">
-    <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <h3 class="text-xl font-bold tracking-tight">ÚLTIMOS INGRESOS</h3>
-        </div>
-        <a href="{{ url_for('alumnos') }}" class="text-gray-400 hover:text-white text-xs font-bold uppercase tracking-widest">Ver listado completo</a>
+<div class="card">
+    <div class="card-header flex justify-between items-center">
+        <h3>Últimos ingresos</h3>
+        <a href="{{ url_for('alumnos') }}" class="text-sm text-gray-400 hover:text-white">Ver todos los alumnos</a>
     </div>
-    <div class="p-0">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-white/5 text-gray-500 text-[10px] uppercase tracking-[2px] font-bold">
-                    <tr>
-                        <th class="px-6 py-4">Alumno</th>
-                        <th class="px-6 py-4">Plan / Actividad</th>
-                        <th class="px-6 py-4">Estado</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    {% for a in stats.ultimos_alumnos %}
-                    <tr class="hover:bg-white/5 transition-colors group">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-800 rounded-lg flex items-center justify-center text-white font-bold text-xs">
-                                    {{ a.nombre[:2] | upper }}
-                                </div>
-                                <div>
-                                    <p class="font-bold text-white group-hover:text-red-400 transition-colors">{{ a.nombre }}</p>
-                                    <p class="text-xs text-gray-500">Ingreso: {{ a.fecha_inicio.strftime('%d/%m/%Y') }}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-sm text-gray-300 font-medium">{{ a.tipo_clase or 'General' }}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if a.vencido %}
-                                <span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-red-500/20">Deudora</span>
-                            {% else %}
-                                <span class="bg-green-500/10 text-green-400 px-3 py-1 rounded-full text-[10px] font-black uppercase border border-green-500/20">Al día</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <a href="{{ url_for('editar_alumno', id=a.id) }}" class="text-gray-500 hover:text-white transition-colors">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="lista-simple">
+        {% for a in stats.ultimos_alumnos %}
+        <a href="{{ url_for('editar_alumno', id=a.id) }}" style="text-decoration:none; color:inherit" class="hover:bg-white/5">
+            <span class="inicial">{{ a.nombre[:1] }}</span>
+            <div style="flex:1; min-width:0">
+                <b class="block truncate">{{ a.nombre }}</b>
+                <span class="dato-2">{{ a.tipo_clase or 'Mensual' }} · desde {{ a.fecha_inicio.strftime('%d/%m/%Y') if a.fecha_inicio else '-' }}</span>
+            </div>
+            {% if a.vencido %}<span class="estado e-deuda">Debe</span>{% else %}<span class="estado e-ok">Al día</span>{% endif %}
+        </a>
+        {% else %}
+        <div class="vacio-lista" style="display:block">Todavía no hay alumnos. <a href="{{ url_for('nuevo_alumno') }}" class="underline">Agregá el primero</a></div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
