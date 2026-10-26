@@ -59,4 +59,35 @@
         </div>
     </div>
 </div>
+
+<div class="card mt-6">
+    <div class="card-header flex justify-between items-center">
+        <h3>Actividad reciente</h3>
+        <span class="text-sm text-gray-500">Ingresos, intentos fallidos y acciones importantes</span>
+    </div>
+    <div class="overflow-x-auto">
+        <table>
+            <thead><tr><th>Fecha</th><th>Qué pasó</th><th>Usuario</th><th>Conexión (IP)</th><th>Detalle</th></tr></thead>
+            <tbody>
+            {% set nombres = {'login_ok': 'Ingreso', 'login_fallido': 'Contraseña incorrecta', '2fa_fallido': 'Código 2FA incorrecto',
+                'ip_bloqueada': 'Conexión bloqueada', 'sondeo': 'Bot buscando fallas', 'logout': 'Cerró sesión',
+                'clave_cambiada': 'Cambió la contraseña', '2fa_activado': 'Activó 2FA', '2fa_desactivado': 'Desactivó 2FA',
+                'usuario_creado': 'Usuario creado', 'usuario_eliminado': 'Usuario eliminado', 'clave_reseteada': 'Contraseña reseteada',
+                'pago_anulado': 'Pago anulado', 'exportacion': 'Exportó pagos', 'importacion': 'Importó alumnos'} %}
+            {% set alertas = ['login_fallido', '2fa_fallido', 'ip_bloqueada', 'sondeo', '2fa_desactivado'] %}
+            {% for e in eventos %}
+            <tr>
+                <td class="text-sm whitespace-nowrap">{{ e.fecha.strftime('%d/%m %H:%M') }}</td>
+                <td><span class="estado {{ 'e-deuda' if e.tipo in alertas else 'e-ok' if e.tipo == 'login_ok' else 'e-baja' }}">{{ nombres.get(e.tipo, e.tipo) }}</span></td>
+                <td class="text-sm">{{ e.usuario or '-' }}</td>
+                <td class="text-sm text-gray-400">{{ e.ip }}</td>
+                <td class="text-sm text-gray-400">{{ e.detalle }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="vacio-lista">Todavía no hay actividad registrada.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

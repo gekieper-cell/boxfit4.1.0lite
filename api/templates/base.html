@@ -6,8 +6,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>{% block title %}Panel{% endblock %} · Profe Medina</title>
 <link rel="icon" href="{{ url_for('static', filename='images/logo-mini.jpg') }}">
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tw.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&display=swap" rel="stylesheet">
@@ -53,7 +53,10 @@ body { background: var(--fondo); color: var(--tx); min-height: 100vh; margin: 0;
   display: grid; place-items: center; font-weight: 800; text-transform: uppercase; }
 .user-info p { margin: 0; line-height: 1.2; }
 .user-info .rol { color: var(--tx-suave); font-size: .75rem; }
-.sidebar a.salir:hover { color: #FCA5A5; background: rgba(224,52,43,.1); }
+.salir { display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; border: 0; background: none;
+  color: var(--tx-suave); font-weight: 600; font-size: .92rem; cursor: pointer; text-align: left; }
+.salir i { width: 18px; text-align: center; }
+.salir:hover { color: #FCA5A5; background: rgba(224,52,43,.1); }
 
 /* ---------- Barra superior (celular) ---------- */
 .topbar { display: none; position: sticky; top: 0; z-index: 40; background: rgba(14,14,16,.92); backdrop-filter: blur(10px);
@@ -219,7 +222,9 @@ a.kpi:hover { border-color: #3F3F46; }
         <p class="rol">{% if current_user.role == 'admin' %}Administrador{% else %}Operador{% endif %}</p>
       </div>
     </div>
-    <a href="{{ url_for('logout') }}" class="salir"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</a>
+    <form method="POST" action="{{ url_for('logout') }}">
+      <button type="submit" class="salir"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</button>
+    </form>
   </div>
 </aside>
 

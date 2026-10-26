@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta, Pago
+from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta, Pago, EventoSeguridad
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_, inspect, text
 from flask import session
@@ -36,8 +36,30 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_DEBUG') != '1'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 
-MAX_INTENTOS = 5
+MAX_INTENTOS = 20  # por usuario (desde cualquier IP); el límite fuerte es por IP
 MINUTOS_BLOQUEO = 15
+MAX_FALLOS_POR_IP = 5          # intentos fallidos desde una misma conexión en MINUTOS_BLOQUEO
+MINUTOS_INACTIVIDAD = 60       # la sesión se cierra sola tras una hora sin uso
+
+def ip_cliente():
+    # Vercel pone la IP real del visitante en estas cabeceras (no las acepta del cliente)
+    ip = request.headers.get('X-Real-IP') or (request.headers.get('X-Forwarded-For') or '').split(',')[0].strip()
+    return (ip or request.remote_addr or '-')[:64]
+
+def registrar_evento(tipo, detalle='', usuario=None):
+    try:
+        nombre = usuario or (current_user.username if current_user and current_user.is_authenticated else None)
+        db.session.add(EventoSeguridad(tipo=tipo, ip=ip_cliente(), usuario=nombre, detalle=(detalle or '')[:300]))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+def ip_bloqueada():
+    desde = datetime.now() - timedelta(minutes=MINUTOS_BLOQUEO)
+    fallos = db.session.query(func.count(EventoSeguridad.id)).filter(
+        EventoSeguridad.ip == ip_cliente(), EventoSeguridad.fecha >= desde,
+        EventoSeguridad.tipo.in_(['login_fallido', '2fa_fallido', 'sondeo'])).scalar() or 0
+    return fallos >= MAX_FALLOS_POR_IP
 
 # Configuración para PostgreSQL (Supabase) o SQLite local
 db_url = os.environ.get('DATABASE_URL')
@@ -238,7 +260,10 @@ def login():
         password = request.form.get('password', '')
         user = User.query.filter_by(username=username).first()
 
-        if user and user.bloqueado_hasta and user.bloqueado_hasta > datetime.now():
+        if ip_bloqueada():
+            registrar_evento('ip_bloqueada', f'intento con usuario "{username}"', usuario=username)
+            flash(f'Demasiados intentos fallidos desde tu conexión. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
+        elif user and user.bloqueado_hasta and user.bloqueado_hasta > datetime.now():
             flash(f'Demasiados intentos fallidos. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
         elif user and check_password_hash(user.password, password):
             if user.totp_secret:
@@ -251,6 +276,7 @@ def login():
             if not user:
                 check_password_hash(HASH_FALSO, password)
             registrar_fallo(user)
+            registrar_evento('login_fallido', f'usuario "{username}"', usuario=username)
             flash('Usuario o contraseña incorrectos', 'error')
 
     return render_template('login.html', paso='clave')
@@ -268,7 +294,7 @@ def verificar_2fa():
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        if user.bloqueado_hasta and user.bloqueado_hasta > datetime.now():
+        if ip_bloqueada() or (user.bloqueado_hasta and user.bloqueado_hasta > datetime.now()):
             session.pop('2fa_uid', None)
             flash(f'Demasiados intentos fallidos. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
             return redirect(url_for('login'))
@@ -280,6 +306,7 @@ def verificar_2fa():
             session.pop('2fa_uid', None)
             return completar_login(user)
         registrar_fallo(user)
+        registrar_evento('2fa_fallido', 'código incorrecto o repetido', usuario=user.username)
         flash('Código incorrecto. Usá el código de 6 dígitos que muestra la app.', 'error')
 
     return render_template('login.html', paso='codigo')
@@ -307,22 +334,50 @@ def completar_login(user):
     user.intentos_fallidos = 0
     user.bloqueado_hasta = None
     db.session.commit()
+    session.clear()  # sesión nueva desde cero al entrar
     session.permanent = True
     session['sv'] = user.session_version or 0
+    session['ultima'] = datetime.now().timestamp()
     login_user(user)
-    if user.role == 'admin' and not user.totp_secret:
-        flash('Activá la verificación en dos pasos desde Seguridad para proteger la cuenta.', 'warning')
+    registrar_evento('login_ok', 'con 2FA' if user.totp_secret else 'sin 2FA', usuario=user.username)
     return redirect(url_for('index'))
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     # Invalida también cualquier copia de la cookie (por ejemplo, si alguien la robó)
+    registrar_evento('logout')
     cerrar_todas_las_sesiones(current_user)
     db.session.commit()
     logout_user()
     session.clear()
     return redirect(url_for('index'))
+
+@app.before_request
+def controles_de_sesion():
+    if request.endpoint in (None, 'static') or not current_user.is_authenticated:
+        return
+    ahora = datetime.now().timestamp()
+    # Cierre automático por inactividad
+    if ahora - session.get('ultima', ahora) > MINUTOS_INACTIVIDAD * 60:
+        logout_user()
+        session.clear()
+        flash('Tu sesión se cerró por inactividad. Volvé a ingresar.', 'error')
+        return redirect(url_for('login'))
+    session['ultima'] = ahora
+    # El administrador tiene que tener la verificación en dos pasos activa para usar el panel
+    if current_user.role == 'admin' and not current_user.totp_secret and request.endpoint not in ('seguridad', 'logout'):
+        flash('Por seguridad, activá la verificación en dos pasos para seguir usando el panel.', 'warning')
+        return redirect(url_for('seguridad'))
+
+# Trampas: rutas que solo buscan los bots que escanean sitios. Quien entra suma un intento fallido.
+RUTAS_TRAMPA = ['/login', '/wp-admin', '/wp-login.php', '/.env', '/phpmyadmin', '/administrator',
+                '/admin.php', '/.git/config', '/config.php', '/xmlrpc.php', '/server-status']
+def trampa():
+    registrar_evento('sondeo', request.path)
+    return Response('Not Found', status=404, mimetype='text/plain')
+for _ruta in RUTAS_TRAMPA:
+    app.add_url_rule(_ruta, 'trampa' + _ruta.replace('/', '_').replace('.', '_').replace('-', '_'), trampa, methods=['GET', 'POST'])
 
 # ====================== SEGURIDAD (2FA Y CONTRASEÑA) ======================
 
@@ -352,6 +407,7 @@ def seguridad():
                 cerrar_todas_las_sesiones(user)
                 db.session.commit()
                 session['sv'] = user.session_version
+                registrar_evento('clave_cambiada')
                 flash('Contraseña cambiada. Se cerraron las demás sesiones abiertas.', 'success')
 
         elif accion == 'activar_2fa':
@@ -361,6 +417,7 @@ def seguridad():
                 user.totp_secret = secreto
                 db.session.commit()
                 session.pop('2fa_nuevo', None)
+                registrar_evento('2fa_activado')
                 flash('Verificación en dos pasos activada', 'success')
             else:
                 flash('Código incorrecto. Escaneá el QR y usá el código que muestra la app.', 'danger')
@@ -370,6 +427,7 @@ def seguridad():
             if user.totp_secret and pyotp.TOTP(user.totp_secret).verify(codigo, valid_window=1):
                 user.totp_secret = None
                 db.session.commit()
+                registrar_evento('2fa_desactivado')
                 flash('Verificación en dos pasos desactivada', 'success')
             else:
                 flash('Código incorrecto. La verificación en dos pasos sigue activa.', 'danger')
@@ -383,7 +441,11 @@ def seguridad():
         session['2fa_nuevo'] = secreto
         uri = pyotp.TOTP(secreto).provisioning_uri(name=user.username, issuer_name='Boxing Club Profe Medina')
         qr = qr_svg(uri)
-    return render_template('seguridad.html', qr=qr, secreto=secreto)
+    consulta = EventoSeguridad.query
+    if user.role != 'admin':
+        consulta = consulta.filter_by(usuario=user.username)
+    eventos = consulta.order_by(EventoSeguridad.fecha.desc()).limit(40).all()
+    return render_template('seguridad.html', qr=qr, secreto=secreto, eventos=eventos)
 
 @app.errorhandler(Exception)
 def error_interno(e):
@@ -420,6 +482,14 @@ def cabeceras_seguridad(resp):
     resp.headers['X-Frame-Options'] = 'DENY'
     resp.headers['X-Content-Type-Options'] = 'nosniff'
     resp.headers['Referrer-Policy'] = 'same-origin'
+    resp.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+    resp.headers['Cross-Origin-Opener-Policy'] = 'same-origin'
+    # Solo se ejecuta código de esta web; estilos y fuentes únicamente de Google Fonts y cdnjs
+    resp.headers['Content-Security-Policy'] = (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data:; "
+        "connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
     if request.path != '/' and not request.path.startswith('/static'):
         # Las páginas del panel no se guardan en caché ni se indexan
         resp.headers['Cache-Control'] = 'no-store'
@@ -534,6 +604,9 @@ def editar_alumno(id):
 @app.route('/alumno/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_alumno(id):
+    if current_user.role != 'admin':
+        flash('Solo un administrador puede hacer esto', 'danger')
+        return redirect(url_for('alumnos'))
     alumno = Alumno.query.get_or_404(id)
     alumno.activo = False
     alumno.estado = 'inactivo'
@@ -593,6 +666,7 @@ def anular_pago(id):
     alumno.fecha_vencimiento = ultimo.periodo_hasta if ultimo and ultimo.periodo_hasta else (alumno.fecha_inicio or date.today())
     alumno.ultimo_pago = ultimo.fecha if ultimo else None
     db.session.commit()
+    registrar_evento('pago_anulado', f'pago #{id}')
     flash('Pago anulado', 'success')
     return redirect(request.referrer or url_for('pagos'))
 
@@ -622,6 +696,10 @@ def pagos():
 @app.route('/pagos/exportar')
 @login_required
 def exportar_pagos():
+    if current_user.role != 'admin':
+        flash('Solo un administrador puede hacer esto', 'danger')
+        return redirect(url_for('alumnos'))
+    registrar_evento('exportacion', request.args.get('mes') or 'mes actual')
     inicio, fin = _rango_mes(request.args.get('mes'))
     lista = Pago.query.filter(Pago.fecha >= inicio, Pago.fecha < fin).order_by(Pago.fecha).all()
     output = io.StringIO()
@@ -667,6 +745,10 @@ def descargar_plantilla_alumnos():
 @app.route('/alumnos/importar', methods=['POST'])
 @login_required
 def importar_alumnos_excel():
+    if current_user.role != 'admin':
+        flash('Solo un administrador puede hacer esto', 'danger')
+        return redirect(url_for('alumnos'))
+    registrar_evento('importacion', 'Excel de alumnos')
     archivo = request.files.get('archivo')
     if not archivo:
         flash('No se seleccionó ningún archivo', 'danger')
@@ -926,6 +1008,7 @@ def nuevo_usuario():
     else:
         db.session.add(User(username=username, password=generate_password_hash(password), role=role))
         db.session.commit()
+        registrar_evento('usuario_creado', f'{username} ({role})')
         flash('Usuario creado', 'success')
 
     return redirect(url_for('usuarios'))
@@ -946,6 +1029,7 @@ def reset_password(id):
     usuario.intentos_fallidos = 0
     usuario.bloqueado_hasta = None
     db.session.commit()
+    registrar_evento('clave_reseteada', usuario.username)
     flash(f'Contraseña temporal de {usuario.username}: {temporal} (sin verificación en dos pasos hasta que la vuelva a activar)', 'fijo')
     return redirect(url_for('usuarios'))
 
@@ -963,6 +1047,7 @@ def eliminar_usuario(id):
     usuario = User.query.get_or_404(id)
     db.session.delete(usuario)
     db.session.commit()
+    registrar_evento('usuario_eliminado', usuario.username)
     flash('Usuario eliminado', 'success')
     return redirect(url_for('usuarios'))
 

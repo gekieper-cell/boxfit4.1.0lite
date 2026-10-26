@@ -17,6 +17,16 @@ class User(UserMixin, db.Model):
     ultimo_totp = db.Column(db.Integer)  # último paso TOTP usado, para no aceptar el mismo código dos veces
     ventas = db.relationship('Venta', backref='usuario', lazy=True)
 
+class EventoSeguridad(db.Model):
+    """Registro de actividad: ingresos, intentos fallidos, sondeos y acciones sensibles."""
+    __tablename__ = 'eventos_seguridad'
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.DateTime, default=datetime.now, index=True)
+    tipo = db.Column(db.String(30), index=True)
+    ip = db.Column(db.String(64), index=True)
+    usuario = db.Column(db.String(50))
+    detalle = db.Column(db.String(300))
+
 class Alumno(db.Model):
     __tablename__ = 'alumnos'
     id = db.Column(db.Integer, primary_key=True)
