@@ -13,6 +13,8 @@ class User(UserMixin, db.Model):
     totp_secret = db.Column(db.String(32))  # 2FA activo si tiene valor
     intentos_fallidos = db.Column(db.Integer, default=0)
     bloqueado_hasta = db.Column(db.DateTime)
+    session_version = db.Column(db.Integer, default=0)  # al subirla se cierran todas las sesiones abiertas
+    ultimo_totp = db.Column(db.Integer)  # último paso TOTP usado, para no aceptar el mismo código dos veces
     ventas = db.relationship('Venta', backref='usuario', lazy=True)
 
 class Alumno(db.Model):

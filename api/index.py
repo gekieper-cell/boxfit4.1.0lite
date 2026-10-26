@@ -21,13 +21,11 @@ app = Flask(__name__)
 # Configuración de Seguridad y Base de Datos
 if os.environ.get('SECRET_KEY'):
     app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
-elif os.environ.get('VERCEL'):
-    # El repo es público: nunca usar una clave fija en producción (permitiría falsificar sesiones).
+else:
+    # El repo es público: nunca usar una clave fija (permitiría falsificar sesiones).
     # Sin SECRET_KEY, cada instancia usa una clave al azar (las sesiones se cierran solas a veces).
     app.config['SECRET_KEY'] = secrets.token_hex(32)
-    print(">>> AVISO: falta SECRET_KEY en Vercel; se usa una clave temporal al azar")
-else:
-    app.config['SECRET_KEY'] = 'clave-solo-para-desarrollo-local'
+    print(">>> AVISO: falta SECRET_KEY; se usa una clave temporal al azar")
 
 # Límite de tamaño de lo que se sube (por ejemplo, el Excel de alumnos)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
@@ -35,7 +33,7 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 # Cookies de sesión: solo por HTTPS en Vercel, no accesibles desde JS, y vencen a las 8 horas
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = bool(os.environ.get('VERCEL'))
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_DEBUG') != '1'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 
 MAX_INTENTOS = 5
@@ -134,7 +132,18 @@ def no_autorizado():
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    user = User.query.get(int(user_id))
+    # Una sesión vieja (antes de cerrar sesión o cambiar la contraseña) ya no sirve
+    if user and session.get('sv') != (user.session_version or 0):
+        return None
+    return user
+
+def cerrar_todas_las_sesiones(user):
+    user.session_version = (user.session_version or 0) + 1
+
+# Hash de una contraseña que no existe: se usa para que un usuario inexistente
+# tarde lo mismo que uno real y no se pueda adivinar qué usuarios existen
+HASH_FALSO = generate_password_hash(secrets.token_hex(16))
 
 # ====================== DASHBOARD ======================
 
@@ -239,6 +248,8 @@ def login():
                 return redirect(url_for('verificar_2fa'))
             return completar_login(user)
         else:
+            if not user:
+                check_password_hash(HASH_FALSO, password)
             registrar_fallo(user)
             flash('Usuario o contraseña incorrectos', 'error')
 
@@ -262,13 +273,26 @@ def verificar_2fa():
             flash(f'Demasiados intentos fallidos. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
             return redirect(url_for('login'))
         codigo = request.form.get('codigo', '').replace(' ', '')
-        if pyotp.TOTP(user.totp_secret).verify(codigo, valid_window=1):
+        paso = paso_totp_valido(user.totp_secret, codigo)
+        # Cada código sirve una sola vez, aunque siga vigente en la app
+        if paso is not None and paso > (user.ultimo_totp or 0):
+            user.ultimo_totp = paso
             session.pop('2fa_uid', None)
             return completar_login(user)
         registrar_fallo(user)
         flash('Código incorrecto. Usá el código de 6 dígitos que muestra la app.', 'error')
 
     return render_template('login.html', paso='codigo')
+
+def paso_totp_valido(secreto, codigo):
+    """Devuelve el paso de 30 s del código si es válido (tolerancia de ±1 paso), o None."""
+    totp = pyotp.TOTP(secreto)
+    ahora = datetime.now().timestamp()
+    for desvio in (0, -1, 1):
+        t = ahora + desvio * totp.interval
+        if secrets.compare_digest(totp.at(t), codigo or ''):
+            return int(t // totp.interval)
+    return None
 
 def registrar_fallo(user):
     if not user:
@@ -284,6 +308,7 @@ def completar_login(user):
     user.bloqueado_hasta = None
     db.session.commit()
     session.permanent = True
+    session['sv'] = user.session_version or 0
     login_user(user)
     if user.role == 'admin' and not user.totp_secret:
         flash('Activá la verificación en dos pasos desde Seguridad para proteger la cuenta.', 'warning')
@@ -292,6 +317,9 @@ def completar_login(user):
 @app.route('/logout')
 @login_required
 def logout():
+    # Invalida también cualquier copia de la cookie (por ejemplo, si alguien la robó)
+    cerrar_todas_las_sesiones(current_user)
+    db.session.commit()
     logout_user()
     session.clear()
     return redirect(url_for('index'))
@@ -320,8 +348,11 @@ def seguridad():
                 flash('Las contraseñas nuevas no coinciden', 'danger')
             else:
                 user.password = generate_password_hash(nueva)
+                # Cierra las demás sesiones abiertas y mantiene esta
+                cerrar_todas_las_sesiones(user)
                 db.session.commit()
-                flash('Contraseña cambiada', 'success')
+                session['sv'] = user.session_version
+                flash('Contraseña cambiada. Se cerraron las demás sesiones abiertas.', 'success')
 
         elif accion == 'activar_2fa':
             secreto = session.get('2fa_nuevo')
@@ -378,8 +409,9 @@ def proteger_csrf():
     if request.method == 'POST':
         origen = request.headers.get('Origin') or request.headers.get('Referer') or ''
         from urllib.parse import urlparse
-        # Se compara solo el host: detrás del proxy de Vercel el esquema interno puede ser http
-        if origen and urlparse(origen).netloc != request.host:
+        # Se compara solo el host: detrás del proxy de Vercel el esquema interno puede ser http.
+        # Un POST sin Origin ni Referer también se rechaza (los navegadores siempre mandan uno).
+        if urlparse(origen).netloc != request.host:
             app.logger.warning(f'POST bloqueado desde otro origen: {origen} -> {request.path}')
             return Response('Solicitud bloqueada', status=403, mimetype='text/plain')
 
@@ -529,7 +561,9 @@ def registrar_pago(id):
     hoy = date.today()
     try:
         monto = float(request.form.get('monto') or alumno.valor_cuota or 0)
-        meses = max(1, int(request.form.get('meses') or 1))
+        meses = max(1, min(12, int(request.form.get('meses') or 1)))
+        if monto <= 0:
+            raise ValueError
     except ValueError:
         flash('Monto inválido', 'danger')
         return redirect(request.referrer or url_for('alumnos'))
@@ -645,7 +679,7 @@ def importar_alumnos_excel():
         return redirect(url_for('alumnos'))
 
     try:
-        wb = openpyxl.load_workbook(archivo, data_only=True)
+        wb = openpyxl.load_workbook(archivo, data_only=True, read_only=True)
         hoja = wb.active
         creados = 0
         for fila in hoja.iter_rows(min_row=2, values_only=True):
@@ -673,7 +707,9 @@ def importar_alumnos_excel():
         flash(f'Se importaron {creados} alumnos correctamente', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Error al importar el archivo: {e}', 'danger')
+        app.logger.exception('Error importando Excel')
+        db.session.rollback()
+        flash('No se pudo importar el archivo. Revisá que use la plantilla y que los montos sean números.', 'danger')
 
     return redirect(url_for('alumnos'))
 
@@ -833,7 +869,13 @@ def listar_ventas():
 @login_required
 def venta_rapida():
     producto_id = request.form.get('producto_id')
-    cantidad = int(request.form.get('cantidad', 1))
+    try:
+        cantidad = int(request.form.get('cantidad', 1))
+    except ValueError:
+        cantidad = 0
+    if cantidad < 1:
+        flash('La cantidad tiene que ser 1 o más', 'danger')
+        return redirect(request.referrer or url_for('index'))
 
     producto = Producto.query.get(producto_id) if producto_id else None
     if producto and producto.stock >= cantidad:
@@ -898,6 +940,7 @@ def reset_password(id):
     usuario = User.query.get_or_404(id)
     temporal = secrets.token_urlsafe(9)
     usuario.password = generate_password_hash(temporal)
+    cerrar_todas_las_sesiones(usuario)
     # Si perdió el celular, el reset también le quita la verificación en dos pasos
     usuario.totp_secret = None
     usuario.intentos_fallidos = 0
