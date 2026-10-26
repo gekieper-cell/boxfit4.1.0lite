@@ -69,6 +69,19 @@ with app.app_context():
                 print(f">>> Columna agregada: {tabla.name}.{col.name}")
     except Exception as e:
         print(f">>> ERROR agregando columnas: {e}")
+
+    # En Supabase: RLS activado sin políticas cierra el acceso por la API pública (anon).
+    # La app se conecta como postgres, que ignora RLS, así que sigue funcionando.
+    if db.engine.dialect.name == 'postgresql':
+        tablas_viejas = ['user', 'alumno', 'clase', 'asistencia_clase', 'producto', 'venta']
+        try:
+            inspector = inspect(db.engine)
+            with db.engine.begin() as conn:
+                for nombre in [t.name for t in db.metadata.sorted_tables] + tablas_viejas:
+                    if inspector.has_table(nombre):
+                        conn.execute(text(f'ALTER TABLE public."{nombre}" ENABLE ROW LEVEL SECURITY'))
+        except Exception as e:
+            print(f">>> ERROR activando RLS: {e}")
     try:
         # Solo se crea un admin inicial si la base no tiene ningún usuario
         if User.query.count() == 0:
