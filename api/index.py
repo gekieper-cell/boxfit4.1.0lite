@@ -71,7 +71,13 @@ def index():
     return dashboard()
 
 def landing():
-    clases = Clase.query.all()
+    # Si la base falla, la página pública igual tiene que mostrarse (sin horarios)
+    try:
+        clases = Clase.query.all()
+    except Exception:
+        app.logger.exception('No se pudieron leer las clases para la landing')
+        db.session.rollback()
+        clases = []
     orden = {d: i for i, d in enumerate(DIAS_SEMANA)}
     por_dia = {}
     for c in sorted(clases, key=lambda c: (orden.get(c.dia, 99), c.hora or '')):
