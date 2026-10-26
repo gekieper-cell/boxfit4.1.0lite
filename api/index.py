@@ -19,9 +19,18 @@ import qrcode.image.svg
 app = Flask(__name__)
 
 # Configuración de Seguridad y Base de Datos
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'boxfit_secret_key_2026')
-if 'SECRET_KEY' not in os.environ:
-    print(">>> AVISO: SECRET_KEY no configurada; las sesiones usan una clave conocida")
+if os.environ.get('SECRET_KEY'):
+    app.config['SECRET_KEY'] = os.environ['SECRET_KEY']
+elif os.environ.get('VERCEL'):
+    # El repo es público: nunca usar una clave fija en producción (permitiría falsificar sesiones).
+    # Sin SECRET_KEY, cada instancia usa una clave al azar (las sesiones se cierran solas a veces).
+    app.config['SECRET_KEY'] = secrets.token_hex(32)
+    print(">>> AVISO: falta SECRET_KEY en Vercel; se usa una clave temporal al azar")
+else:
+    app.config['SECRET_KEY'] = 'clave-solo-para-desarrollo-local'
+
+# Límite de tamaño de lo que se sube (por ejemplo, el Excel de alumnos)
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
 # Cookies de sesión: solo por HTTPS en Vercel, no accesibles desde JS, y vencen a las 8 horas
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -362,6 +371,18 @@ def error_interno(e):
         return Response('No se pudo conectar con la base de datos. Revisá DATABASE_URL en Vercel.', status=500, mimetype='text/plain; charset=utf-8')
     return Response('Error interno', status=500, mimetype='text/plain')
 
+@app.before_request
+def proteger_csrf():
+    # Un formulario enviado desde otro sitio no puede actuar con la sesión del profesor:
+    # todo POST tiene que venir de esta misma web.
+    if request.method == 'POST':
+        origen = request.headers.get('Origin') or request.headers.get('Referer') or ''
+        from urllib.parse import urlparse
+        # Se compara solo el host: detrás del proxy de Vercel el esquema interno puede ser http
+        if origen and urlparse(origen).netloc != request.host:
+            app.logger.warning(f'POST bloqueado desde otro origen: {origen} -> {request.path}')
+            return Response('Solicitud bloqueada', status=403, mimetype='text/plain')
+
 @app.after_request
 def cabeceras_seguridad(resp):
     resp.headers['X-Frame-Options'] = 'DENY'
@@ -572,8 +593,12 @@ def exportar_pagos():
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
     writer.writerow(['fecha', 'alumno', 'dni', 'monto', 'metodo', 'vence'])
+    def celda(v):
+        # Evita que Excel ejecute fórmulas escondidas en un nombre (inyección CSV)
+        v = str(v or '')
+        return "'" + v if v[:1] in ('=', '+', '-', '@') else v
     for p in lista:
-        writer.writerow([p.fecha.strftime('%d/%m/%Y'), p.alumno_rel.nombre, p.alumno_rel.dni, f'{p.monto:.0f}', p.metodo,
+        writer.writerow([p.fecha.strftime('%d/%m/%Y'), celda(p.alumno_rel.nombre), celda(p.alumno_rel.dni), f'{p.monto:.0f}', celda(p.metodo),
                          p.periodo_hasta.strftime('%d/%m/%Y') if p.periodo_hasta else ''])
     return Response('\ufeff' + output.getvalue(), mimetype='text/csv',
                     headers={'Content-Disposition': f'attachment; filename=cobranzas_{inicio.strftime("%Y-%m")}.csv'})
@@ -685,6 +710,9 @@ def editar_clase(id):
 @app.route('/clase/nueva', methods=['POST'])
 @login_required
 def nueva_clase():
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('clases'))
     capacidad = request.form.get('capacidad') or 20
     clase = Clase(
         nombre=request.form.get('nombre'),
@@ -700,6 +728,9 @@ def nueva_clase():
 @app.route('/clase/eliminar/<int:id>', methods=['POST'])
 @login_required
 def eliminar_clase(id):
+    if current_user.role != 'admin':
+        flash('No tenés permisos para esta acción', 'danger')
+        return redirect(url_for('clases'))
     clase = Clase.query.get_or_404(id)
     db.session.delete(clase)
     db.session.commit()
@@ -842,11 +873,13 @@ def nuevo_usuario():
         flash('No tenés permisos para esta acción', 'danger')
         return redirect(url_for('index'))
 
-    username = request.form.get('username')
-    password = request.form.get('password')
-    role = request.form.get('role', 'operador')
+    username = (request.form.get('username') or '').strip()
+    password = request.form.get('password') or ''
+    role = 'admin' if request.form.get('role') == 'admin' else 'operador'
 
-    if User.query.filter_by(username=username).first():
+    if not username or len(password) < 10:
+        flash('Usuario obligatorio y contraseña de al menos 10 caracteres', 'danger')
+    elif User.query.filter_by(username=username).first():
         flash('Ese nombre de usuario ya existe', 'danger')
     else:
         db.session.add(User(username=username, password=generate_password_hash(password), role=role))
