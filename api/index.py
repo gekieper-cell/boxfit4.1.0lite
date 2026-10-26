@@ -9,7 +9,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta, Pago
 from datetime import datetime, date, timedelta
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, inspect, text
 
 app = Flask(__name__)
 
@@ -35,6 +35,24 @@ with app.app_context():
     except Exception as e:
         db.session.rollback()
         print(f">>> ERROR creando tablas: {e}")
+
+    # create_all no modifica tablas existentes: agregamos las columnas nuevas
+    # del modelo que falten en la base (por ejemplo, en Supabase).
+    try:
+        inspector = inspect(db.engine)
+        for tabla in db.metadata.sorted_tables:
+            if not inspector.has_table(tabla.name):
+                continue
+            existentes = {c['name'] for c in inspector.get_columns(tabla.name)}
+            for col in tabla.columns:
+                if col.name in existentes:
+                    continue
+                tipo = col.type.compile(dialect=db.engine.dialect)
+                with db.engine.begin() as conn:
+                    conn.execute(text(f'ALTER TABLE {tabla.name} ADD COLUMN {col.name} {tipo}'))
+                print(f">>> Columna agregada: {tabla.name}.{col.name}")
+    except Exception as e:
+        print(f">>> ERROR agregando columnas: {e}")
     try:
         if not User.query.filter_by(username='admin').first():
             admin_user = User(
