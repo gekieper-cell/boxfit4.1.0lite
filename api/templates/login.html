@@ -300,6 +300,8 @@
     <!-- FONDO LOGO -->
     <div class="login-bg"></div>
     <div class="hero-overlay"></div>
+    <canvas class="aurora" data-colors="#7f1d1d,#ef4444,#b91c1c" data-amplitude="1.1" data-blend="0.5" data-speed="1"
+            style="position:fixed; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none;"></canvas>
 
     <div class="flex items-center justify-center min-h-screen p-6">
         <div class="login-container w-full max-w-md">
@@ -364,5 +366,6 @@
             });
         }, 5000);
     </script>
+    <script src="{{ url_for('static', filename='js/aurora.js') }}"></script>
 </body>
 </html>

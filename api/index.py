@@ -52,6 +52,11 @@ with app.app_context():
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+@login_manager.unauthorized_handler
+def no_autorizado():
+    # El ingreso es oculto: quien no está logueado vuelve a la página pública
+    return redirect(url_for('index'))
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -59,8 +64,22 @@ def load_user(user_id):
 # ====================== DASHBOARD ======================
 
 @app.route('/')
-@login_required
 def index():
+    # Visitantes: página pública del club. Staff logueado: dashboard.
+    if not current_user.is_authenticated:
+        return landing()
+    return dashboard()
+
+def landing():
+    clases = Clase.query.all()
+    orden = {d: i for i, d in enumerate(DIAS_SEMANA)}
+    por_dia = {}
+    for c in sorted(clases, key=lambda c: (orden.get(c.dia, 99), c.hora or '')):
+        por_dia.setdefault(c.dia or 'A confirmar', []).append(c)
+    whatsapp = ''.join(ch for ch in os.environ.get('WHATSAPP', '') if ch.isdigit())
+    return render_template('landing.html', horarios=list(por_dia.items()), whatsapp=whatsapp)
+
+def dashboard():
     hoy = date.today()
     fecha_alerta = hoy + timedelta(days=7)
 
@@ -110,12 +129,14 @@ def index():
         'promedio_semanal': promedio_semanal,
     }
 
-    return render_template('dashboard.html', stats=stats)
+    return render_template('dashboard.html', stats=stats, hoy=hoy)
 
 # ====================== LOGIN / LOGOUT ======================
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/admin', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -133,7 +154,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 # ====================== ALUMNOS ======================
 

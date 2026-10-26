@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+instance/
+*.db
+.env
+.vercel
+.aidesigner/*
+!.aidesigner/.gitkeep

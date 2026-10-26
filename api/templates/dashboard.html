@@ -2,16 +2,11 @@
 {% block title %}Dashboard - BoxFit{% endblock %}
 
 {% block content %}
-<div class="glass-card mb-8">
-    <div class="card-header flex items-center gap-4 p-6">
-        <div class="w-14 h-14 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-900/20">
-            <i class="fas fa-chart-line text-white text-2xl"></i>
-        </div>
-        <div>
-            <h2 class="text-3xl font-bold tracking-tight text-white" style="font-family: 'Bebas Neue', sans-serif;">DASHBOARD BOXFIT</h2>
-            <p class="text-gray-400 text-sm mt-1 uppercase tracking-widest">Panel de Control de <strong>{{ current_user.username }}</strong></p>
-        </div>
-    </div>
+{% set dias = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'] %}
+{% set meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'] %}
+<div class="mb-8 pl-16 lg:pl-0">
+    <p class="text-gray-400 text-sm first-letter:uppercase">{{ dias[hoy.weekday()] }} {{ hoy.day }} de {{ meses[hoy.month - 1] }}</p>
+    <h2 class="text-5xl text-white leading-none mt-1" style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">Hola, {{ current_user.username }}</h2>
 </div>
 
 {% if stats.alumnos_alerta > 0 %}
@@ -48,7 +43,7 @@
 </a>
 {% endif %}
 
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
     <a href="{{ url_for('alumnos') }}" class="stat-card p-6 text-center hover:scale-105 transition-transform cursor-pointer block glass-card border-b-2 border-blue-500/30">
         <div class="text-5xl mb-2 text-white" style="font-family: 'Bebas Neue', sans-serif;">{{ stats.total_alumnos }}</div>
         <p class="text-gray-400 uppercase tracking-wider text-xs font-bold mb-4">Total Alumnos</p>

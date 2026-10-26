@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boxing Club El Profe Medina · Boxeo recreativo en Luján</title>
+<meta name="description" content="Boxeo recreativo en Luján, Buenos Aires. Entrená técnica, ponete en forma y sacá el estrés con el Profe Medina. La primera clase es gratis.">
+<meta property="og:title" content="Boxing Club El Profe Medina">
+<meta property="og:description" content="Boxeo recreativo en Luján. Tu primera clase es gratis.">
+<meta property="og:image" content="{{ url_for('static', filename='images/logo-boxing.jpg', _external=True) }}">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#FFFFFF">
+<link rel="icon" href="{{ url_for('static', filename='images/logo-mini.jpg') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --negro: #000000;
+  --blanco: #FFFFFF;
+  --gris: #F2F2F2;
+  --gris-tx: #5C5C5C;
+  --guante: #D7261E;
+  --wa: #25D366;
+  --fuente: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--fuente); color: var(--negro); background: var(--blanco); font-size: 1.0625rem; line-height: 1.6; }
+a { color: inherit; }
+img { max-width: 100%; display: block; }
+:focus-visible { outline: 3px solid var(--guante); outline-offset: 3px; }
+.envoltura { max-width: 1240px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------- Encabezado ---------- */
+.cabecera { position: sticky; top: 0; z-index: 20; background: var(--blanco); border-bottom: 1px solid #E6E6E6; }
+.cabecera .envoltura { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 68px; }
+.marca { grid-column: 2; text-decoration: none; font-weight: 900; font-stretch: 112%; font-size: 1.6rem; letter-spacing: -.01em; line-height: 1; text-align: center; }
+.marca small { display: block; font-weight: 600; font-stretch: 100%; font-size: .68rem; letter-spacing: .02em; color: var(--gris-tx); margin-top: 3px; }
+.menu-btn { grid-column: 3; justify-self: end; background: none; border: 0; cursor: pointer; width: 44px; height: 44px; display: grid; place-content: center; gap: 5px; }
+.menu-btn span { display: block; width: 24px; height: 2.5px; background: var(--negro); transition: transform .2s ease, opacity .2s ease; }
+.menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+.menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+.menu { display: none; border-top: 1px solid #E6E6E6; }
+.menu.abierto { display: block; }
+.menu ul { list-style: none; max-width: 1240px; margin: 0 auto; padding: 8px 20px 20px; }
+.menu a { display: block; padding: 14px 0; border-bottom: 1px solid #EEE; text-decoration: none; font-weight: 800; font-stretch: 110%; text-transform: uppercase; font-size: 1.15rem; }
+.menu a:hover { color: var(--guante); }
+
+/* ---------- Mosaico de accesos (portada) ----------
+   Cada foto es un acceso directo: un verbo grande y a dónde lleva. */
+.mosaico { padding: 20px 0 0; }
+.mosaico .envoltura { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.acceso { position: relative; display: block; overflow: hidden; text-decoration: none; color: var(--blanco); background: #222; aspect-ratio: 4 / 5; }
+.acceso.principal { grid-column: 1 / -1; aspect-ratio: 21 / 9; }
+.acceso img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+.acceso::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,0) 100%); }
+.acceso:hover img { transform: scale(1.04); }
+.acceso .texto { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; padding: 28px; text-align: center; }
+.acceso .verbo { display: block; font-weight: 900; font-stretch: 118%; text-transform: uppercase; line-height: .9; font-size: clamp(2.6rem, 7vw, 5rem); letter-spacing: -.01em; }
+.acceso.principal .verbo { font-size: clamp(3rem, 10vw, 8rem); }
+.acceso .destino { display: block; margin-top: 8px; text-transform: uppercase; font-weight: 500; font-size: clamp(1rem, 1.8vw, 1.35rem); letter-spacing: .01em; }
+.acceso.principal .destino { font-size: clamp(1.05rem, 2.2vw, 1.6rem); }
+.acceso .gratis { display: inline-block; margin-top: 14px; background: var(--guante); padding: 6px 12px 5px; font-weight: 800; font-size: .95rem; }
+
+/* ---------- Banda del club ---------- */
+.banda { margin: 20px 0 0; }
+.banda .envoltura > div { background: var(--negro); color: var(--blanco); display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center; padding: 28px 32px; }
+.banda img { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; border: 3px solid var(--blanco); }
+.banda h2 { font-weight: 900; font-stretch: 115%; text-transform: uppercase; font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1; }
+.banda p { color: #CFCFCF; margin-top: 6px; max-width: 46em; }
+
+/* ---------- Secciones ---------- */
+.seccion { padding: 96px 0 0; scroll-margin-top: 68px; }
+.titulo { font-weight: 900; font-stretch: 118%; text-transform: uppercase; font-size: clamp(2.4rem, 6vw, 4.25rem); line-height: .92; letter-spacing: -.01em; margin-bottom: 14px; }
+.intro { max-width: 38em; color: var(--gris-tx); margin-bottom: 40px; font-size: 1.1rem; }
+
+/* La clase: es una secuencia real, por eso va numerada en rounds */
+.clase { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+.clase .foto { position: relative; min-height: 420px; background: #222; }
+.clase .foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rounds { list-style: none; background: var(--gris); padding: 12px 36px; display: flex; flex-direction: column; justify-content: center; }
+.rounds li { display: grid; grid-template-columns: 92px 1fr; gap: 16px; padding: 22px 0; }
+.rounds li + li { border-top: 1px solid #D9D9D9; }
+.rounds .n { font-weight: 900; font-stretch: 115%; color: var(--guante); text-transform: uppercase; font-size: .95rem; padding-top: 4px; }
+.rounds h3 { font-weight: 900; font-stretch: 112%; text-transform: uppercase; font-size: 1.4rem; line-height: 1.05; margin-bottom: 4px; }
+.rounds p { color: var(--gris-tx); font-size: .98rem; }
+
+/* ---------- Horarios ---------- */
+.horarios { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.dia { background: var(--gris); padding: 24px; border-top: 6px solid var(--negro); }
+.dia.hoy { background: var(--negro); color: var(--blanco); border-top-color: var(--guante); }
+.dia h3 { font-weight: 900; font-stretch: 115%; text-transform: uppercase; font-size: 1.6rem; line-height: 1; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.dia.hoy h3::after { content: "Hoy"; font-size: .75rem; font-stretch: 100%; background: var(--guante); color: var(--blanco); padding: 4px 8px 3px; }
+.dia ul { list-style: none; }
+.dia li { display: flex; gap: 12px; align-items: baseline; padding: 6px 0; }
+.dia .hora { font-weight: 800; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.dia .nombre { color: var(--gris-tx); }
+.dia.hoy .nombre { color: #CFCFCF; }
+.vacio { background: var(--gris); padding: 32px; }
+
+/* ---------- Preguntas ---------- */
+.preguntas { max-width: 820px; }
+.preguntas details { border-top: 1px solid #D9D9D9; }
+.preguntas details:last-child { border-bottom: 1px solid #D9D9D9; }
+.preguntas summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 0; font-weight: 800; font-size: 1.15rem; }
+.preguntas summary::-webkit-details-marker { display: none; }
+.preguntas summary::after { content: "+"; font-weight: 400; font-size: 2rem; line-height: 1; transition: transform .2s ease; }
+.preguntas details[open] summary::after { transform: rotate(45deg); }
+.preguntas details p { padding: 0 0 22px; max-width: 40em; color: var(--gris-tx); }
+
+/* ---------- Cierre ---------- */
+.cierre { position: relative; margin-top: 96px; color: var(--blanco); text-align: center; background: #111; overflow: hidden; }
+.cierre img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .45; }
+.cierre .envoltura { position: relative; padding-top: 120px; padding-bottom: 120px; }
+.cierre .titulo { font-size: clamp(3rem, 10vw, 7.5rem); }
+.cierre p { max-width: 30em; margin: 0 auto 32px; font-size: 1.15rem; }
+.boton { display: inline-flex; align-items: center; gap: 10px; background: var(--blanco); color: var(--negro); text-decoration: none; font-weight: 800;
+  text-transform: uppercase; font-size: 1.05rem; padding: 18px 30px; transition: background .15s ease, color .15s ease; }
+.boton:hover { background: var(--guante); color: var(--blanco); }
+.boton svg { width: 22px; height: 22px; flex: none; }
+
+footer { background: var(--negro); color: #BDBDBD; font-size: .9rem; }
+footer .envoltura { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 28px; padding-bottom: 28px; }
+footer a { color: var(--blanco); }
+.creditos { font-size: .8rem; }
+
+/* WhatsApp flotante, siempre a mano */
+.wa-flota { position: fixed; right: 20px; bottom: 20px; z-index: 30; width: 64px; height: 64px; border-radius: 50%; background: var(--wa); color: var(--blanco);
+  display: grid; place-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); transition: transform .15s ease; }
+.wa-flota:hover { transform: scale(1.06); }
+.wa-flota svg { width: 34px; height: 34px; }
+
+@media (max-width: 820px) {
+  .mosaico .envoltura { grid-template-columns: 1fr; gap: 16px; }
+  .acceso, .acceso.principal { aspect-ratio: 1 / 1; }
+  .banda .envoltura > div { grid-template-columns: 1fr; text-align: center; justify-items: center; gap: 16px; padding: 28px 22px; }
+  .clase { grid-template-columns: 1fr; }
+  .clase .foto { min-height: 300px; }
+  .rounds { padding: 8px 22px; }
+  .rounds li { grid-template-columns: 1fr; gap: 2px; }
+  .seccion { padding-top: 72px; }
+  .cierre { margin-top: 72px; }
+  .cierre .envoltura { padding-top: 88px; padding-bottom: 88px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .acceso img, .wa-flota, .menu-btn span { transition: none; }
+}
+</style>
+</head>
+<body>
+
+{% set wa_texto = 'Hola, quiero anotarme a la clase gratis' %}
+{% set wa_link = ('https://wa.me/' ~ whatsapp ~ '?text=' ~ (wa_texto|urlencode)) if whatsapp else '#horarios' %}
+{% macro icono_wa() %}<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z"/></svg>{% endmacro %}
+{% macro foto(nombre) %}{{ url_for('static', filename='images/foto-' ~ nombre ~ '.jpg') }}{% endmacro %}
+
+<header class="cabecera">
+  <div class="envoltura">
+    <a class="marca" href="#inicio">PROFE MEDINA<small>Boxing Club · Luján</small></a>
+    <button class="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="Abrir menú"><span></span><span></span><span></span></button>
+  </div>
+  <nav class="menu" id="menu">
+    <ul>
+      <li><a href="#clase">La clase</a></li>
+      <li><a href="#horarios">Horarios</a></li>
+      <li><a href="#preguntas">Preguntas</a></li>
+      <li><a href="{{ wa_link }}" {% if whatsapp %}target="_blank" rel="noopener"{% endif %}>Clase gratis</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="inicio">
+  <section class="mosaico" aria-label="Accesos">
+    <div class="envoltura">
+      <a class="acceso principal" href="#clase">
+        <img src="{{ foto('manoplas') }}" alt="Dos personas entrenando boxeo con manoplas en un gimnasio" fetchpriority="high">
+        <span class="texto"><span class="verbo">Conocé</span><span class="destino">Cómo es una clase de boxeo</span></span>
+      </a>
+      <a class="acceso" href="#horarios">
+        <img src="{{ foto('bolsas') }}" alt="Hilera de bolsas de boxeo colgadas en un gimnasio" loading="lazy">
+        <span class="texto"><span class="verbo">Elegí</span><span class="destino">Días y horarios</span></span>
+      </a>
+      <a class="acceso" href="{{ wa_link }}" {% if whatsapp %}target="_blank" rel="noopener"{% endif %}>
+        <img src="{{ foto('entrena') }}" alt="Mujer entrenando boxeo en un gimnasio" loading="lazy">
+        <span class="texto"><span class="verbo">Entrená</span><span class="destino">Tu primera clase</span><span class="gratis">Es gratis</span></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="banda">
+    <div class="envoltura">
+      <div>
+        <img src="{{ url_for('static', filename='images/logo-boxing.jpg') }}" alt="Logo de Boxing Club El Profe Medina" width="84" height="84">
+        <div>
+          <h2>Boxeo recreativo, sin pelear</h2>
+          <p>Aprendés técnica, te ponés en forma y te vas con la cabeza despejada. No hace falta experiencia: el Profe ajusta cada ejercicio a tu nivel.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="clase">
+    <div class="envoltura">
+      <h2 class="titulo">Así es una clase</h2>
+      <p class="intro">Cada clase se arma por rounds, como en el ring. Cada uno va a su ritmo.</p>
+      <div class="clase">
+        <div class="foto"><img src="{{ foto('clase') }}" alt="Hombre practicando boxeo en un gimnasio" loading="lazy"></div>
+        <ol class="rounds">
+          <li><span class="n">Round 1</span><div><h3>Entrada en calor</h3><p>Soga, movilidad y desplazamientos para arrancar con el cuerpo listo.</p></div></li>
+          <li><span class="n">Round 2</span><div><h3>Técnica</h3><p>Guardia, golpes y defensa. Lo básico bien hecho, sin apuro.</p></div></li>
+          <li><span class="n">Round 3</span><div><h3>Bolsa y manoplas</h3><p>Combinaciones con intensidad. Acá se descarga el día.</p></div></li>
+          <li><span class="n">Round 4</span><div><h3>Cierre</h3><p>Trabajo de zona media y elongación para irte entero.</p></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" id="horarios">
+    <div class="envoltura">
+      <h2 class="titulo">Días y horarios</h2>
+      <p class="intro">Elegí el horario que te quede cómodo. Podés venir a cualquiera.</p>
+      {% if horarios %}
+      <div class="horarios">
+        {% for dia, clases in horarios %}
+        <div class="dia" data-dia="{{ dia|lower }}">
+          <h3>{{ dia }}</h3>
+          <ul>
+            {% for c in clases %}
+            <li><span class="hora">{{ c.hora }}</span><span class="nombre">{{ c.nombre }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="vacio">Estamos armando los horarios. Escribinos y te pasamos los días disponibles.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="seccion" id="preguntas">
+    <div class="envoltura">
+      <h2 class="titulo">Antes de venir</h2>
+      <div class="preguntas">
+        <details>
+          <summary>¿Tengo que pelear?</summary>
+          <p>No. Es boxeo recreativo: entrenás golpes contra la bolsa y con manoplas, no subís a competir.</p>
+        </details>
+        <details>
+          <summary>¿Qué tengo que llevar?</summary>
+          <p>Ropa cómoda, zapatillas, una toalla chica y agua. Si tenés guantes y vendas, traelos; si no, avisanos por WhatsApp.</p>
+        </details>
+        <details>
+          <summary>¿Desde qué edad se puede entrenar?</summary>
+          <p>Escribinos por WhatsApp y te decimos qué horario conviene según la edad.</p>
+        </details>
+        <details>
+          <summary>¿Cómo se paga la cuota?</summary>
+          <p>La cuota es mensual. Te pasamos el valor y los medios de pago cuando te anotás.</p>
+        </details>
+        <details>
+          <summary>¿Tengo que venir siempre al mismo horario?</summary>
+          <p>No. Podés venir a cualquier turno de la grilla.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cierre">
+    <img src="{{ foto('guantes') }}" alt="" loading="lazy">
+    <div class="envoltura">
+      <h2 class="titulo">Subite al ring</h2>
+      <p>La primera clase es gratis. Traé ropa cómoda, agua y ganas de moverte.</p>
+      <a class="boton" href="{{ wa_link }}" {% if whatsapp %}target="_blank" rel="noopener"{% endif %}>{{ icono_wa() }} Reservar mi clase gratis</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="envoltura">
+    <span>Boxing Club El Profe Medina, Luján, Buenos Aires</span>
+    <span class="creditos">Fotos: Unsplash</span>
+  </div>
+</footer>
+
+{% if whatsapp %}
+<a class="wa-flota" href="{{ wa_link }}" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">{{ icono_wa() }}</a>
+{% endif %}
+
+<script>
+// Menú desplegable
+(function () {
+  var btn = document.querySelector('.menu-btn');
+  var menu = document.getElementById('menu');
+  btn.addEventListener('click', function () {
+    var abierto = menu.classList.toggle('abierto');
+    btn.setAttribute('aria-expanded', abierto);
+    btn.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
+  });
+  menu.addEventListener('click', function (e) {
+    if (e.target.closest('a')) { menu.classList.remove('abierto'); btn.setAttribute('aria-expanded', false); }
+  });
+})();
+
+// Marca el día de hoy en la grilla
+(function () {
+  var dias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+  var hoy = dias[new Date().getDay()];
+  document.querySelectorAll('.dia[data-dia]').forEach(function (el) {
+    var dia = el.dataset.dia.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (dia === hoy) el.classList.add('hoy');
+  });
+})();
+</script>
+</body>
+</html>

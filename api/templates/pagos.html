@@ -8,8 +8,8 @@
         <p class="text-gray-500 text-sm">Historial de cuotas cobradas y alumnos con deuda</p>
     </div>
     <form method="GET" class="flex gap-2">
-        <input type="month" name="mes" value="{{ mes }}" class="form-control" onchange="this.form.submit()">
-        <a href="{{ url_for('exportar_pagos', mes=mes) }}" class="btn btn-outline"><i class="fas fa-file-csv"></i> Exportar</a>
+        <input type="month" name="mes" value="{{ mes }}" class="form-control" style="width:auto" onchange="this.form.submit()">
+        <a href="{{ url_for('exportar_pagos', mes=mes) }}" class="btn btn-outline whitespace-nowrap"><i class="fas fa-file-csv"></i> Exportar</a>
     </form>
 </div>
 

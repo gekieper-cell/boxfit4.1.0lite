@@ -7,7 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap');
 
 * {
 font-family: 'Roboto', system-ui, -apple-system, sans-serif;
@@ -406,12 +406,103 @@ background: rgba(16,185,129,0.2);
 border: 1px solid rgba(16,185,129,0.3);
 color: #dcfce7;
 }
+
+/* ================== TEMA "RING" (negro + rojo guante + Aurora) ================== */
+:root {
+  --fondo: #050507;
+  --superficie: rgba(255,255,255,0.035);
+  --superficie-2: rgba(255,255,255,0.06);
+  --borde: rgba(255,255,255,0.08);
+  --borde-fuerte: rgba(255,255,255,0.16);
+  --texto: #F4F4F5;
+  --tenue: #A1A1AA;
+  --guante: #E0342B;
+  --guante-oscuro: #9F1D17;
+  --ok: #34D399;
+  --alerta: #FBBF24;
+}
+* { font-family: 'Barlow', system-ui, sans-serif; }
+body { background: var(--fondo); color: var(--texto); }
+.logo-bg, .hero-overlay { display: none; }
+canvas.aurora { position: fixed; top: 0; left: 0; width: 100%; height: 70vh; z-index: -1; pointer-events: none; opacity: .55;
+  -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent); }
+:focus-visible { outline: 2px solid var(--guante); outline-offset: 2px; }
+
+/* Sidebar */
+.sidebar { background: rgba(5,5,7,0.82); border-right: 1px solid var(--borde); box-shadow: none; backdrop-filter: blur(18px); }
+.sidebar-header, .user-info { border-color: var(--borde); }
+.user-info { background: transparent; }
+.sidebar h1 { background: none; -webkit-text-fill-color: var(--texto); color: var(--texto); font-size: 30px; letter-spacing: 1.5px; line-height: 1; }
+.user-avatar { background: var(--guante); }
+.logo-mini { border: 2px solid var(--borde-fuerte); box-shadow: 0 0 0 6px rgba(224,52,43,0.12); }
+.sidebar a { color: var(--tenue); font-weight: 600; font-size: 15px; border-left-width: 3px; }
+.sidebar a:hover { background: var(--superficie-2); border-left-color: transparent; transform: none; }
+.sidebar a.active { background: linear-gradient(90deg, rgba(224,52,43,0.22), transparent 80%); border-left-color: var(--guante); color: var(--texto); }
+.sidebar a.active i { color: var(--guante); opacity: 1; }
+.main-content { max-width: 1400px; }
+
+/* Tarjetas: quietas, sin saltos ni sombras pesadas */
+.glass-card, .card, .stat-card { background: var(--superficie); border: 1px solid var(--borde); border-radius: 18px;
+  box-shadow: none; backdrop-filter: blur(14px); animation: none; }
+.card { overflow: hidden; margin-bottom: 24px; }
+.glass-card:hover, .stat-card:hover { transform: none; box-shadow: none; }
+a.glass-card:hover, a.stat-card:hover { border-color: var(--borde-fuerte); background: var(--superficie-2); transform: none !important; }
+.card-header { background: transparent; border-color: var(--borde); padding: 18px 24px; }
+.card-body { padding: 24px; }
+.sidebar { animation: none; }
+
+/* Títulos */
+h2, h3 { color: var(--texto); }
+.text-gray-500 { color: var(--tenue) !important; }
+.text-gray-400 { color: #8B8B94 !important; }
+
+/* Botones */
+.btn { border-radius: 12px; letter-spacing: .6px; font-weight: 700; box-shadow: none; }
+.btn-primary, .btn-success { background: var(--guante); box-shadow: 0 6px 20px rgba(224,52,43,0.28); }
+.btn-primary:hover, .btn-success:hover { background: #F0453B; transform: none; box-shadow: 0 8px 26px rgba(224,52,43,0.4); }
+.btn-outline { background: transparent; color: var(--texto); border: 1px solid var(--borde-fuerte); }
+.btn-outline:hover { background: var(--superficie-2); }
+.btn-sm { padding: 8px 14px; font-size: 12px; }
+.btn-warning { background: #B7791F; box-shadow: none; }
+.mobile-menu-btn { background: var(--guante); box-shadow: 0 6px 20px rgba(224,52,43,0.35); border-radius: 14px; width: 48px; height: 48px; top: 16px; left: 16px; }
+
+/* Formularios */
+.form-control { border: 1px solid var(--borde-fuerte); border-radius: 12px; background: rgba(255,255,255,0.04); padding: 12px 14px; }
+.form-control:focus { border-color: var(--guante); box-shadow: 0 0 0 3px rgba(224,52,43,0.18); background: rgba(255,255,255,0.06); }
+.form-control::placeholder { color: #71717A; }
+select.form-control option { background: #121216; color: var(--texto); }
+.form-label { display: block; color: var(--tenue); font-size: 13px; text-transform: none; letter-spacing: 0; }
+.form-group { margin-bottom: 16px; }
+
+/* Tablas */
+table { background: transparent; border-radius: 0; }
+th { background: transparent; color: var(--tenue); font-size: 12px; font-weight: 600; letter-spacing: .4px; padding: 12px 16px; border-bottom: 1px solid var(--borde-fuerte); }
+td { padding: 14px 16px; border-bottom: 1px solid var(--borde); color: var(--texto); }
+tr:hover, .hover\:bg-gray-50:hover { background: rgba(255,255,255,0.03) !important; }
+.border-b { border-color: var(--borde) !important; }
+
+/* Etiquetas de estado (convierte los colores claros de Tailwind a tono oscuro) */
+.badge, .rounded-full.text-xs { font-weight: 700; }
+.bg-green-100 { background: rgba(52,211,153,0.12) !important; } .text-green-800 { color: var(--ok) !important; }
+.bg-red-100 { background: rgba(224,52,43,0.15) !important; } .text-red-800 { color: #FF8A80 !important; }
+.bg-yellow-100 { background: rgba(251,191,36,0.12) !important; } .text-yellow-800 { color: var(--alerta) !important; }
+.bg-blue-50 { background: rgba(96,165,250,0.08) !important; } .text-blue-700 { color: #93C5FD !important; }
+
+/* Modales */
+.fixed.bg-black\/50 { background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); }
+.fixed.bg-black\/50 > .card { background: #111115; border-color: var(--borde-fuerte); }
+
+/* Alertas */
+.alert { border-radius: 12px; }
+.alert-success { background: rgba(52,211,153,0.1); border-color: rgba(52,211,153,0.3); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
 <!-- FONDO LOGO -->
 <div class="logo-bg"></div>
 <div class="hero-overlay"></div>
+<canvas class="aurora" data-colors="#3b0a08,#E0342B,#5b0f0b" data-amplitude="0.9" data-blend="0.6" data-speed="0.6"></canvas>
 
 {% if current_user.is_authenticated %}
 <!-- MOBILE MENU BUTTON -->
@@ -514,6 +605,7 @@ setTimeout(() => a.remove(), 400);
 });
 }, 5000);
 </script>
+<script src="{{ url_for('static', filename='js/aurora.js') }}"></script>
 
 {% else %}
 {% block auth_content %}{% endblock %}
