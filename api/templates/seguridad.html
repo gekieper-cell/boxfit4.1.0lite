@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Seguridad{% endblock %}
+
+{% block content %}
+<div class="mb-5">
+    <h2 class="text-xl font-semibold">Seguridad</h2>
+    <p class="text-gray-500 text-sm">Protegé tu cuenta: {{ current_user.username }}</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Verificación en dos pasos</h3></div>
+        <div class="card-body">
+            {% if current_user.totp_secret %}
+            <p class="text-sm mb-4"><i class="fas fa-check-circle text-green-500"></i> Activa. Al ingresar te pedimos la contraseña y un código de tu celular.</p>
+            <form method="POST" class="space-y-3">
+                <input type="hidden" name="accion" value="desactivar_2fa">
+                <label class="block text-sm">Para desactivarla, escribí un código actual de la app</label>
+                <input type="text" name="codigo" class="form-input w-full" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('¿Desactivar la verificación en dos pasos?')">Desactivar</button>
+            </form>
+            {% else %}
+            <p class="text-sm mb-3">Aunque alguien sepa tu contraseña, no va a poder entrar sin tu celular.</p>
+            <ol class="text-sm space-y-2 mb-4" style="list-style:decimal; padding-left:20px">
+                <li>Instalá Google Authenticator o Microsoft Authenticator en tu celular.</li>
+                <li>En la app, tocá "Agregar" y escaneá este código QR.</li>
+                <li>Escribí abajo el código de 6 dígitos que aparece en la app.</li>
+            </ol>
+            <div style="background:#fff; padding:12px; width:max-content; border-radius:8px" class="mb-3">{{ qr|safe }}</div>
+            <p class="text-xs text-gray-500 mb-4">Si no podés escanear, cargá esta clave a mano: <code style="user-select:all">{{ secreto }}</code></p>
+            <form method="POST" class="space-y-3">
+                <input type="hidden" name="accion" value="activar_2fa">
+                <input type="text" name="codigo" class="form-input w-full" placeholder="Código de 6 dígitos" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-shield-alt"></i> Activar verificación</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h3 class="font-semibold">Cambiar contraseña</h3></div>
+        <div class="card-body">
+            <form method="POST" class="space-y-3">
+                <input type="hidden" name="accion" value="clave">
+                <div>
+                    <label class="block text-sm mb-1">Contraseña actual</label>
+                    <input type="password" name="actual" class="form-input w-full" autocomplete="current-password" required>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Contraseña nueva (mínimo 10 caracteres)</label>
+                    <input type="password" name="nueva" class="form-input w-full" autocomplete="new-password" minlength="10" required>
+                </div>
+                <div>
+                    <label class="block text-sm mb-1">Repetir contraseña nueva</label>
+                    <input type="password" name="repetir" class="form-input w-full" autocomplete="new-password" minlength="10" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

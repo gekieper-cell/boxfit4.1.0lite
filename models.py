@@ -10,6 +10,9 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default='operador')
+    totp_secret = db.Column(db.String(32))  # 2FA activo si tiene valor
+    intentos_fallidos = db.Column(db.Integer, default=0)
+    bloqueado_hasta = db.Column(db.DateTime)
     ventas = db.relationship('Venta', backref='usuario', lazy=True)
 
 class Alumno(db.Model):

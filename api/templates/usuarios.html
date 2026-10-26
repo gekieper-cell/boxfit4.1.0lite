@@ -34,7 +34,7 @@
                     </div>
                     <div class="flex gap-2">
                         {% if u.id != current_user.id %}
-                        <form method="POST" action="{{ url_for('reset_password', id=u.id) }}" class="inline" onsubmit="return confirm('¿Restablecer contraseña a 123456?')"><button type="submit" class="text-yellow-500" title="Resetear contraseña">
+                        <form method="POST" action="{{ url_for('reset_password', id=u.id) }}" class="inline" onsubmit="return confirm('¿Restablecer la contraseña? Se genera una temporal y se quita la verificación en dos pasos.')"><button type="submit" class="text-yellow-500" title="Resetear contraseña">
                             <i class="fas fa-key"></i>
                         </button></form>
                         <form method="POST" action="{{ url_for('eliminar_usuario', id=u.id) }}" class="inline" onsubmit="return confirm('¿Eliminar este usuario?')"><button type="submit" class="text-red-500" title="Eliminar">

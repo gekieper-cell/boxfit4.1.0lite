@@ -10,11 +10,27 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Alumno, Clase, AsistenciaClase, Producto, Venta, Pago
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, or_, inspect, text
+from flask import session
+import secrets
+import pyotp
+import qrcode
+import qrcode.image.svg
 
 app = Flask(__name__)
 
 # Configuración de Seguridad y Base de Datos
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'boxfit_secret_key_2026')
+if 'SECRET_KEY' not in os.environ:
+    print(">>> AVISO: SECRET_KEY no configurada; las sesiones usan una clave conocida")
+
+# Cookies de sesión: solo por HTTPS en Vercel, no accesibles desde JS, y vencen a las 8 horas
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = bool(os.environ.get('VERCEL'))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+
+MAX_INTENTOS = 5
+MINUTOS_BLOQUEO = 15
 
 # Configuración para PostgreSQL (Supabase) o SQLite local
 db_url = os.environ.get('DATABASE_URL')
@@ -54,15 +70,17 @@ with app.app_context():
     except Exception as e:
         print(f">>> ERROR agregando columnas: {e}")
     try:
-        if not User.query.filter_by(username='admin').first():
+        # Solo se crea un admin inicial si la base no tiene ningún usuario
+        if User.query.count() == 0:
+            clave_inicial = os.environ.get('ADMIN_PASSWORD') or secrets.token_urlsafe(9)
             admin_user = User(
                 username='admin',
-                password=generate_password_hash('admin123'),
+                password=generate_password_hash(clave_inicial),
                 role='admin'
             )
             db.session.add(admin_user)
             db.session.commit()
-            print(">>> Usuario admin creado: admin / admin123")
+            print(f">>> Usuario admin creado: admin / {clave_inicial}")
     except Exception as e:
         db.session.rollback()
         print(f">>> No se pudo crear admin (probablemente ya existe): {e}")
@@ -162,23 +180,145 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
         user = User.query.filter_by(username=username).first()
 
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('index'))
+        if user and user.bloqueado_hasta and user.bloqueado_hasta > datetime.now():
+            flash(f'Demasiados intentos fallidos. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
+        elif user and check_password_hash(user.password, password):
+            if user.totp_secret:
+                # Contraseña correcta: falta el código de la app autenticadora
+                session['2fa_uid'] = user.id
+                session['2fa_desde'] = datetime.now().timestamp()
+                return redirect(url_for('verificar_2fa'))
+            return completar_login(user)
         else:
-            flash('Usuario o contraseña incorrectos', 'danger')
+            registrar_fallo(user)
+            flash('Usuario o contraseña incorrectos', 'error')
 
-    return render_template('login.html')
+    return render_template('login.html', paso='clave')
+
+@app.route('/admin/codigo', methods=['GET', 'POST'])
+def verificar_2fa():
+    uid = session.get('2fa_uid')
+    # El paso del código vence a los 5 minutos de haber puesto la contraseña
+    if not uid or datetime.now().timestamp() - session.get('2fa_desde', 0) > 300:
+        session.pop('2fa_uid', None)
+        return redirect(url_for('login'))
+    user = User.query.get(uid)
+    if not user or not user.totp_secret:
+        session.pop('2fa_uid', None)
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        if user.bloqueado_hasta and user.bloqueado_hasta > datetime.now():
+            session.pop('2fa_uid', None)
+            flash(f'Demasiados intentos fallidos. Probá de nuevo en {MINUTOS_BLOQUEO} minutos.', 'error')
+            return redirect(url_for('login'))
+        codigo = request.form.get('codigo', '').replace(' ', '')
+        if pyotp.TOTP(user.totp_secret).verify(codigo, valid_window=1):
+            session.pop('2fa_uid', None)
+            return completar_login(user)
+        registrar_fallo(user)
+        flash('Código incorrecto. Usá el código de 6 dígitos que muestra la app.', 'error')
+
+    return render_template('login.html', paso='codigo')
+
+def registrar_fallo(user):
+    if not user:
+        return
+    user.intentos_fallidos = (user.intentos_fallidos or 0) + 1
+    if user.intentos_fallidos >= MAX_INTENTOS:
+        user.bloqueado_hasta = datetime.now() + timedelta(minutes=MINUTOS_BLOQUEO)
+        user.intentos_fallidos = 0
+    db.session.commit()
+
+def completar_login(user):
+    user.intentos_fallidos = 0
+    user.bloqueado_hasta = None
+    db.session.commit()
+    session.permanent = True
+    login_user(user)
+    if user.role == 'admin' and not user.totp_secret:
+        flash('Activá la verificación en dos pasos desde Seguridad para proteger la cuenta.', 'warning')
+    return redirect(url_for('index'))
 
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
+    session.clear()
     return redirect(url_for('index'))
+
+# ====================== SEGURIDAD (2FA Y CONTRASEÑA) ======================
+
+def qr_svg(uri):
+    img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage, box_size=8)
+    return img.to_string(encoding='unicode')
+
+@app.route('/seguridad', methods=['GET', 'POST'])
+@login_required
+def seguridad():
+    user = current_user
+    if request.method == 'POST':
+        accion = request.form.get('accion')
+
+        if accion == 'clave':
+            actual = request.form.get('actual', '')
+            nueva = request.form.get('nueva', '')
+            if not check_password_hash(user.password, actual):
+                flash('La contraseña actual no es correcta', 'danger')
+            elif len(nueva) < 10:
+                flash('La contraseña nueva tiene que tener al menos 10 caracteres', 'danger')
+            elif nueva != request.form.get('repetir', ''):
+                flash('Las contraseñas nuevas no coinciden', 'danger')
+            else:
+                user.password = generate_password_hash(nueva)
+                db.session.commit()
+                flash('Contraseña cambiada', 'success')
+
+        elif accion == 'activar_2fa':
+            secreto = session.get('2fa_nuevo')
+            codigo = request.form.get('codigo', '').replace(' ', '')
+            if secreto and pyotp.TOTP(secreto).verify(codigo, valid_window=1):
+                user.totp_secret = secreto
+                db.session.commit()
+                session.pop('2fa_nuevo', None)
+                flash('Verificación en dos pasos activada', 'success')
+            else:
+                flash('Código incorrecto. Escaneá el QR y usá el código que muestra la app.', 'danger')
+
+        elif accion == 'desactivar_2fa':
+            codigo = request.form.get('codigo', '').replace(' ', '')
+            if user.totp_secret and pyotp.TOTP(user.totp_secret).verify(codigo, valid_window=1):
+                user.totp_secret = None
+                db.session.commit()
+                flash('Verificación en dos pasos desactivada', 'success')
+            else:
+                flash('Código incorrecto. La verificación en dos pasos sigue activa.', 'danger')
+
+        return redirect(url_for('seguridad'))
+
+    qr = secreto = None
+    if not user.totp_secret:
+        # Secreto nuevo guardado en sesión hasta que se confirme con un código
+        secreto = session.get('2fa_nuevo') or pyotp.random_base32()
+        session['2fa_nuevo'] = secreto
+        uri = pyotp.TOTP(secreto).provisioning_uri(name=user.username, issuer_name='Boxing Club Profe Medina')
+        qr = qr_svg(uri)
+    return render_template('seguridad.html', qr=qr, secreto=secreto)
+
+@app.after_request
+def cabeceras_seguridad(resp):
+    resp.headers['X-Frame-Options'] = 'DENY'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Referrer-Policy'] = 'same-origin'
+    if request.path != '/' and not request.path.startswith('/static'):
+        # Las páginas del panel no se guardan en caché ni se indexan
+        resp.headers['Cache-Control'] = 'no-store'
+        resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return resp
 
 # ====================== ALUMNOS ======================
 
@@ -611,9 +751,14 @@ def reset_password(id):
         return redirect(url_for('index'))
 
     usuario = User.query.get_or_404(id)
-    usuario.password = generate_password_hash('123456')
+    temporal = secrets.token_urlsafe(9)
+    usuario.password = generate_password_hash(temporal)
+    # Si perdió el celular, el reset también le quita la verificación en dos pasos
+    usuario.totp_secret = None
+    usuario.intentos_fallidos = 0
+    usuario.bloqueado_hasta = None
     db.session.commit()
-    flash(f'Contraseña de {usuario.username} restablecida a 123456', 'success')
+    flash(f'Contraseña temporal de {usuario.username}: {temporal} (sin verificación en dos pasos hasta que la vuelva a activar)', 'fijo')
     return redirect(url_for('usuarios'))
 
 @app.route('/usuario/eliminar/<int:id>', methods=['POST'])
