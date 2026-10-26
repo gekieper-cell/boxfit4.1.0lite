@@ -321,13 +321,9 @@ def error_interno(e):
         db.session.rollback()
     except Exception:
         pass
-    # TEMPORAL: mostrar el detalle en el ingreso y el panel para diagnosticar el error en producción
-    try:
-        logueado = current_user.is_authenticated
-    except Exception:
-        logueado = False
-    if logueado or request.path.startswith('/admin'):
-        return Response(f'Error interno en {request.path}\n\n{detalle}', status=500, mimetype='text/plain')
+    # El detalle queda solo en los logs de Vercel, nunca en la respuesta
+    if 'OperationalError' in detalle:
+        return Response('No se pudo conectar con la base de datos. Revisá DATABASE_URL en Vercel.', status=500, mimetype='text/plain; charset=utf-8')
     return Response('Error interno', status=500, mimetype='text/plain')
 
 @app.after_request
