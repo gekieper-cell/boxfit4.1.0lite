@@ -309,6 +309,27 @@ def seguridad():
         qr = qr_svg(uri)
     return render_template('seguridad.html', qr=qr, secreto=secreto)
 
+@app.errorhandler(Exception)
+def error_interno(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    import traceback
+    detalle = traceback.format_exc()
+    app.logger.error(detalle)
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    # TEMPORAL: mostrar el detalle en el ingreso y el panel para diagnosticar el error en producción
+    try:
+        logueado = current_user.is_authenticated
+    except Exception:
+        logueado = False
+    if logueado or request.path.startswith('/admin'):
+        return Response(f'Error interno en {request.path}\n\n{detalle}', status=500, mimetype='text/plain')
+    return Response('Error interno', status=500, mimetype='text/plain')
+
 @app.after_request
 def cabeceras_seguridad(resp):
     resp.headers['X-Frame-Options'] = 'DENY'
